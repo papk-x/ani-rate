@@ -2,6 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<!-- 通信先を必要な3つに限定する。localStorage に GitHub トークンを置いているため、
+     万一 XSS が起きても外部へ送り出せる先を塞いでおく。
+     インラインの script / style / onclick を使っているので unsafe-inline は外せない -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  base-uri 'none'; object-src 'none'; form-action 'none';
+  script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
+  img-src 'self' data:; manifest-src 'self'; worker-src 'self';
+  connect-src 'self' https://api.github.com https://gist.githubusercontent.com https://graphql.anilist.co">
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b1d22">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -564,6 +574,25 @@ function load(){
   if(ANCHOR_KEYS.every(k=>!DB.anchors[k])) ANCHOR_KEYS.forEach(k=>{ DB.anchors[k]=DEF_ANCHORS[k]; });
   if(!Array.isArray(DB.works)) DB.works=[];
   if(!Array.isArray(DB.skips)) DB.skips=[];   // 「見ない」にしたタイトルの記録
+  sanitize();
+}
+// 取り込んだJSONやGistから来たデータを、そのまま画面に流さないための最低限の検査。
+// id は onclick の中に文字列として埋めており、話数は数字として出しているため、
+// ここが崩れていると HTML を差し込まれる余地ができる
+const ID_OK=/^[A-Za-z0-9_-]{1,40}$/;
+function sanitize(){
+  DB.works.forEach(w=>{
+    if(typeof w.id!=='string' || !ID_OK.test(w.id)) w.id=uid();
+    if(!Array.isArray(w.episodes)) w.episodes=[];
+    if(!Array.isArray(w.epScores)) w.epScores=[];
+    w.episodes.forEach((e,i)=>{
+      e.no=Number(e.no); if(!isFinite(e.no)) e.no=i+1;
+      if(typeof e.mark!=='string') e.mark='-';
+      if(typeof e.note!=='string') e.note='';
+    });
+    w.epScores.forEach(x=>{ x.no=Number(x.no)||0; x.score=Number(x.score)||0; });
+    if(w.seq!=null) w.seq=Number(w.seq)||0;
+  });
 }
 function save(touch){
   if(touch!==false) DB.updatedAt=nowISO();
@@ -586,7 +615,7 @@ function airLabel(w){
 }
 function epChip(w,e,i){
   return `<button class="ep ${mkCls(e.mark)}${e.note?' has':''}" title="${esc(e.note||'')}"
-    onclick="event.stopPropagation();openEp('${w.id}',${i})">${e.no}</button>`;
+    onclick="event.stopPropagation();openEp('${w.id}',${i})">${esc(e.no)}</button>`;
 }
 // 参考平均。'-'（未回答）は分母から外す
 function markStats(eps){
@@ -751,7 +780,7 @@ function renderEps(){
     h+=`<div class="eps">${eps.map((e,i)=>epChip(w,e,i)).join('')}</div>`;
     h+=`<div class="note">${MARKS.map(m=>m+s.c[m]).join(' ')}${s.ref!=null?` ／ 参考平均 ${s.ref.toFixed(1)}点`:''}</div>`;
     h+=eps.map((e,i)=>`<div class="eprow" onclick="openEp('${w.id}',${i})">
-      <div class="no">${e.no}話</div>
+      <div class="no">${esc(e.no)}話</div>
       <div class="mk ${mkCls(e.mark)}">${esc(e.mark)}</div>
       <div class="cm${e.note?'':' none'}">${e.note?esc(e.note):'（メモなし）'}</div>
     </div>`).join('');
@@ -759,7 +788,7 @@ function renderEps(){
     h+='<div class="note">話ごとの記録はありません。</div>';
   }
   const sc=w.epScores||[];
-  if(sc.length) h+=`<div class="note">xlsx 由来の話ごと点数：${sc.map(x=>x.no+'話 '+x.score).join(' / ')}</div>`;
+  if(sc.length) h+=`<div class="note">xlsx 由来の話ごと点数：${sc.map(x=>esc(x.no)+'話 '+esc(x.score)).join(' / ')}</div>`;
   h+=`<div class="row" style="margin-top:8px"><button class="btn sm" onclick="addEpFromEps()">＋ 話を追加</button></div>`;
   document.getElementById('eps-body').innerHTML=h;
 }
@@ -947,7 +976,7 @@ function renderScoreEps(){
     if(noted.length) h+=noted.map(e=>{
       const i=eps.indexOf(e);
       return `<div class="eprow" onclick="openEp('${w.id}',${i})">
-        <div class="no">${e.no}話</div>
+        <div class="no">${esc(e.no)}話</div>
         <div class="mk ${mkCls(e.mark)}">${esc(e.mark)}</div>
         <div class="cm">${esc(e.note)}</div></div>`;
     }).join('');
@@ -1484,7 +1513,7 @@ function doImport(){
       });
       add++;
     });
-    save();
+    sanitize(); save();
     msg('imp-msg',
       `${add} 件を追加`
       + (fill?`／既存 ${fill} 件の空いていた項目を補完`:'')
@@ -1573,7 +1602,7 @@ async function gistPull(){
     if(r.missing){ msg('gist-msg','Gist に '+GFILE+' がありません。'); return; }
     const d=r.data;
     if(!confirm(`Gist の内容でこの端末を上書きします。\nGist 側 ${(d.works||[]).length} 件 / この端末 ${DB.works.length} 件\nよろしいですか。`)) return;
-    DB=d; gistBase=d.updatedAt; save(false);
+    DB=d; sanitize(); gistBase=d.updatedAt; save(false);
     setPending(false); showSync(); updateBadge();
     msg('gist-msg','取り込みました。'); reRender();
   }catch(e){ msg('gist-msg','失敗： '+e.message); }
@@ -1614,7 +1643,7 @@ async function gistCheck(){
     const d=r.data;
     gistBase=d.updatedAt;
     if(d.updatedAt && (!DB.updatedAt || d.updatedAt>DB.updatedAt)){
-      DB=d; save(false); updateBadge(); reRender();
+      DB=d; sanitize(); save(false); updateBadge(); reRender();
       setSync('別端末の更新を取り込みました');
       setTimeout(showSync, 4000);
     }
@@ -1699,7 +1728,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     gistBase=d.updatedAt;
     // 起動時はGistの方が新しい場合のみ取り込む
     if(!DB.updatedAt || (d.updatedAt && d.updatedAt>DB.updatedAt)){
-      DB=d; save(false); reRender();
+      DB=d; sanitize(); save(false); reRender();
     }
     setPending(false); showSync(); updateBadge();
   }catch(e){ setSync('同期エラー'); }
