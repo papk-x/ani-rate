@@ -221,6 +221,13 @@ print("年の内訳:", sorted(ys.items(), key=lambda x: (x[0] is None, x[0])))
 print(f"うち推定={sum(1 for w in works if w['yearEst'])} / 確定={sum(1 for w in works if w['year'] and not w['yearEst'])} / 不明={ys.get(None,0)}")
 print("メディア:", sorted({w['media'] or '-' : 0 for w in works}.keys()),
       {k: sum(1 for w in works if w['media'] == k) for k in ('tv', 'movie', 'ova', 'sp')})
+dup = {}
+for w in works:
+    dup.setdefault(w["title"], []).append(w["seq"])
+dup = {t: s for t, s in dup.items() if len(s) > 1}
+print(f"完全同名 {len(dup)}タイトル / {sum(len(s) for s in dup.values())}件:",
+      [(t[:22], s) for t, s in dup.items()])
+print("  ※ 同名でも連番が違えば別の記録として全部取り込む（アプリ側は連番で重複判定する）")
 print("点数なし:", [w['title'] for w in works if w['score'] is None])
 print("連番なしで除外:", skipped)
 print("先頭5件:", [(w['seq'], w['title'], w['score'], w['year'], w['yearEst']) for w in works[:5]])

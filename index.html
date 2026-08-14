@@ -862,11 +862,20 @@ function doImport(){
     let j; try{ j=JSON.parse(r.result); }catch(e){ msg('imp-msg','JSONとして読めませんでした。'); return; }
     const src = Array.isArray(j) ? j : (j.works||[]);
     if(!src.length){ msg('imp-msg','works が見つかりません。'); return; }
+    // 同名で別の記録（分割2クール・続編など）があるため、タイトルでは重複判定しない。
+    // xlsx の連番が1行を一意に決めるので、連番があればそちらを鍵にする。
+    const seenSeq=new Set(DB.works.filter(w=>w.source==='import'&&w.seq!=null).map(w=>w.seq));
     const seen=new Set(DB.works.map(w=>w.title));
-    let add=0, skip=0;
+    let add=0, skip=0, same=0;
     src.forEach(s=>{
       const t=(s.title||'').trim(); if(!t) return;
-      if(seen.has(t)){ skip++; return; }
+      if(s.seq!=null){
+        if(seenSeq.has(s.seq)){ skip++; return; }   // 同じ連番＝同じ行。取り込み済み
+        seenSeq.add(s.seq);
+        if(seen.has(t)) same++;                     // 同名だが別の行。これは取り込む
+      }else{
+        if(seen.has(t)){ skip++; return; }
+      }
       seen.add(t);
       DB.works.push({
         id:uid(), seq: s.seq!=null?s.seq:nextSeq(), title:t,
@@ -885,7 +894,7 @@ function doImport(){
       add++;
     });
     save();
-    msg('imp-msg',`${add} 件を追加しました（タイトル重複で ${skip} 件スキップ）。`);
+    msg('imp-msg',`${add} 件を追加しました（取り込み済みで ${skip} 件スキップ${same?`／同名だが別の記録 ${same} 件を追加`:''}）。`);
     renderConf(); queueSync();
   };
   r.readAsText(f,'utf-8');
