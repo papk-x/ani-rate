@@ -1300,17 +1300,27 @@ function markFs(){
 // 視聴年が無い作品の放送年を AniList で調べて埋める。
 // Media を直接引くと1件でも見つからない時に 404 で全部落ちるため、Page で包んで引く。
 // 20件を1リクエストにまとめられるので、300件でも15リクエスト程度で済む
-// AniList は「てーきゅう 第8期」のようなシーズン表記を検索できない。
-// 1回目で外れたものは、この形で落として引き直す
-function searchTitle(t){
-  return String(t==null?'':t)
-    .replace(/[（(][^）)]*[）)]/g,' ')            // 括弧の中（(第2期) など）
+// AniList の検索はタイトルの部分一致で、表記が1文字でも違うと0件になる。
+//   「プラスティック・メモリーズ」→ 0件（AniList側は中黒なしの「プラスティックメモリーズ」）
+//   「てーきゅう 第8期」→ 0件（シーズン表記を持っていない）
+// そこで表記を段階的に崩して引き直す。崩しすぎると別作品に当たるので、
+// 「先頭の語だけで引く」ようなことはしない（「映画 ふたりはプリキュア」が
+// 「映画 バクテン!!」に化けたため）
+function stripSeason(t){
+  return String(t==null?'':t).normalize('NFKC')
+    .replace(/[（(\[][^）)\]]*[）)\]]/g,' ')       // 括弧の中（(第2期) [新編] など）
     .replace(/第?\s*\d+\s*期/g,' ')
     .replace(/\d+\s*(st|nd|rd|th)?\s*シーズン/gi,' ')
     .replace(/(ファースト|セカンド|サード)シーズン/g,' ')
     .replace(/Season\s*\d+/gi,' ')
     .replace(/\s+/g,' ').trim();
 }
+const TITLE_TRIES=[
+  t=>t,                                          // そのまま
+  t=>stripSeason(t),                             // 括弧・第N期・シーズン表記を外す
+  t=>stripSeason(t).replace(/・/g,''),            // 中黒を外す
+  t=>stripSeason(t).replace(/[・\s]/g,'')         // 中黒と空白をすべて外す
+];
 async function enrichYears(){
   const msg=t=>{ document.getElementById('enrich-msg').textContent=t; };
   if(!navigator.onLine){ msg('圏外です。オンラインで実行してください。'); return; }
@@ -1318,19 +1328,24 @@ async function enrichYears(){
   if(!targets.length){ msg('視聴年が入っていない作品はありません。'); return; }
   if(!confirm(`${targets.length} 件を AniList で調べます。放送年を暫定の視聴年として入れます。よろしいですか。`)) return;
   let hit=0, hit2=0;
-  // pass 1 はタイトルそのまま、pass 2 は外れたものをシーズン表記を落として引き直す
-  for(let pass=1; pass<=2; pass++){
-    const rest=targets.filter(w=>w.year==null &&
-      (pass===1 || searchTitle(w.title)!==w.title && searchTitle(w.title).length>1));
+  // 1周目はタイトルそのまま。外れたものだけ、表記を崩して引き直していく
+  for(let pass=0; pass<TITLE_TRIES.length; pass++){
+    const rest=targets.filter(w=>{
+      if(w.year!=null) return false;
+      const s=TITLE_TRIES[pass](w.title);
+      if(!s || s.length<2) return false;
+      // 前の周と同じ文字列になるものは引き直さない
+      return pass===0 || TITLE_TRIES.slice(0,pass).every(f=>f(w.title)!==s);
+    });
     for(let i=0;i<rest.length;i+=20){
       const part=rest.slice(i,i+20);
-      msg(`調べています… ${pass===1?'':'（再検索）'}残り ${rest.length-i} 件 / 見つかった ${hit+hit2} 件`);
+      msg(`調べています… ${pass?'（表記を変えて再検索）':''}残り ${rest.length-i} 件 / 見つかった ${hit+hit2} 件`);
       try{
         const decl=part.map((_,k)=>`$s${k}:String`).join(',');
         const body=part.map((_,k)=>
           `a${k}:Page(perPage:1){media(search:$s${k},type:ANIME,sort:SEARCH_MATCH){`+
           `title{native} startDate{year month day} format episodes}}`).join(' ');
-        const vars={}; part.forEach((w,k)=>{ vars['s'+k]= pass===1 ? w.title : searchTitle(w.title); });
+        const vars={}; part.forEach((w,k)=>{ vars['s'+k]=TITLE_TRIES[pass](w.title); });
         const r=await fetch(ANILIST_URL,{method:'POST',
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify({query:`query(${decl}){${body}}`,variables:vars})});
@@ -1340,7 +1355,7 @@ async function enrichYears(){
           const m=(((j.data||{})['a'+k]||{}).media||[])[0];
           const d=m&&m.startDate;
           if(!d||!d.year) return;
-          if(pass===1) hit++; else hit2++;
+          if(pass===0) hit++; else hit2++;
           const p2=v=>String(v).padStart(2,'0');
           w.airYear=d.year;
           if(d.month) w.airCour=Math.floor((d.month-1)/3)+1;
@@ -1359,7 +1374,8 @@ async function enrichYears(){
   queueSync();
   const left=targets.filter(w=>w.year==null).length;
   msg(`${targets.length} 件を調べ、${hit+hit2} 件に放送年を入れました（不明 ${left} 件）。`
-    + (hit2?`うち ${hit2} 件はシーズン表記を外して再検索したもので、第1期の年になっている場合があります。`:'')
+    + (hit2?`うち ${hit2} 件は表記を変えて再検索したもので、第1期の年になっている場合があります。`:'')
+    + (left?`残りは編集画面から手で入れてください。`:'')
     + '統計の年別に反映されます。');
 }
 
