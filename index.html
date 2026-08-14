@@ -177,6 +177,8 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
   line-height:1.15;padding:1px .2rem;border-radius:6px;background:var(--panel2);
   font-variant-numeric:tabular-nums;letter-spacing:-.02em;
 }
+/* 点数ではなく件数を出す枠。色を付けると点数に見えるので背景を外す */
+.sc.plain{background:none;color:var(--fg)}
 /* 数字を読ませるための文字色。明るい帯は濃い文字、暗い帯は白文字にする */
 .sc.s100,.sc.s90,.sc.s80,.sc.s70,.sc.s60,.sc.s50{color:#1d1405}
 .sc.s30,.sc.s0{color:#fff}
@@ -189,11 +191,16 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
 .sc.s30{background:var(--sc30)}
 .sc.s0{background:var(--sc0)}
 .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 年の行。年の右に、その年で一番点が高かった作品を出す */
+.ttl .ylab{font-weight:700}
+.ttl .best{margin-left:.5rem;font-size:.88rem;color:var(--fg2)}
 .sub{font-size:.76rem;color:var(--fg2);line-height:1.25}
 
 .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .stat .b{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.5rem .4rem}
 .stat .b .n{font-size:1.35rem;font-weight:700;line-height:1.25}
+/* 平均の3枠は一覧と同じ帯の色を付ける。同じ点なら同じ色に見えること */
+.stat .b .n .sc{display:inline-block;font-size:1.35rem;min-width:0;padding:1px .4rem}
 .stat .b .l{font-size:.71rem;color:var(--fg2);line-height:1.3}
 
 .hist{display:flex;align-items:flex-end;gap:2px;height:7rem;margin-top:8px}
@@ -1111,7 +1118,7 @@ function renderSkipList(q){
     const sub=[ d.year?`${d.year}/${d.month||1}/${d.day||1}`:'', FMT_JA[x.format]||'',
                 x.episodes?x.episodes+'話':'', (x.at||'').slice(0,10) ].filter(Boolean).join(' ・ ');
     return `<div class="list-item" onclick="openSkip(${i})">
-      <div class="sc">—</div>
+      <div class="sc plain">—</div>
       <div class="ttl">${esc(x.title)}<div class="sub">${esc(sub)}</div></div>
     </div>`;
   }).join('');
@@ -1145,6 +1152,7 @@ function dropSkip(){
 // ---------- 統計 ----------
 function avg(a){ return a.length? a.reduce((s,v)=>s+v,0)/a.length : null; }
 function fx(v){ return v==null?'—':v.toFixed(1); }
+function cut(s,n){ s=String(s==null?'':s); return s.length>n ? s.slice(0,n)+'…' : s; }
 // 年のまとめ方。2010年以降は1年ごと、それより前は件数が少ないのでまとめる
 function yearBucket(y){
   if(y>=2010) return {key:y,    lo:y,    hi:y,    label:y+'年'};
@@ -1175,7 +1183,7 @@ function renderStat(){
   scored.forEach(w=>{
     if(!w.year) return;
     const b=yearBucket(w.year);
-    (years[b.key]=years[b.key]||{lo:b.lo,hi:b.hi,label:b.label,v:[]}).v.push(w.score);
+    (years[b.key]=years[b.key]||{lo:b.lo,hi:b.hi,label:b.label,w:[]}).w.push(w);
   });
   const yk=Object.keys(years).map(Number).sort((a,b)=>b-a);
   const latestY = yk.length?yk[0]:null;
@@ -1191,11 +1199,13 @@ function renderStat(){
 
   let h=`<div class="stat">
     <div class="b"><div class="n">${scored.length}</div><div class="l">採点済み作品数</div></div>
-    <div class="b"><div class="n">${fx(avg(all))}</div><div class="l">自己平均（全期間）</div></div>
-    <div class="b"><div class="n">${fx(avg(bySeq.slice(0,20).map(w=>w.score)))}</div><div class="l">直近20件の平均</div></div>
-    <div class="b"><div class="n">${fx(avg(bySeq.slice(0,50).map(w=>w.score)))}</div><div class="l">直近50件の平均</div></div>
     <div class="b"><div class="n">${totEp.toLocaleString()}</div><div class="l">視聴話数</div></div>
     <div class="b"><div class="n">${Math.round(totMin/60).toLocaleString()}</div><div class="l">視聴時間（h）</div></div>
+    ${[['自己平均（全期間）',avg(all)],
+       ['直近20件の平均',   avg(bySeq.slice(0,20).map(w=>w.score))],
+       ['直近50件の平均',   avg(bySeq.slice(0,50).map(w=>w.score))]]
+      .map(([lb,v])=>`<div class="b"><div class="n">
+        <span class="sc ${scCls(v)}">${fx(v)}</span></div><div class="l">${lb}</div></div>`).join('')}
   </div>
   <div class="note">視聴話数は「気になる」を除いた ${watched.length} 件から。話数が分からないものは1作12話（劇場は1本110分）として概算しています。</div>`;
 
@@ -1204,13 +1214,13 @@ function renderStat(){
 
   // 点数帯ごとの件数と、その帯で一番良かった作品。同点なら全部出す（100点が複数ある想定）
   const BANDS=[
-    {label:'90点以上', lo:90,  hi:100, cls:'s90'},
-    {label:'80〜89',   lo:80,  hi:89,  cls:'s80'},
-    {label:'70〜79',   lo:70,  hi:79,  cls:'s70'},
-    {label:'60〜69',   lo:60,  hi:69,  cls:'s60'},
-    {label:'50〜59',   lo:50,  hi:59,  cls:'s50'},
-    {label:'30〜49',   lo:30,  hi:49,  cls:'s30'},
-    {label:'29点以下', lo:0,   hi:29,  cls:'s0'}
+    {label:'90点以上', lo:90,  hi:100},
+    {label:'80〜89',   lo:80,  hi:89},
+    {label:'70〜79',   lo:70,  hi:79},
+    {label:'60〜69',   lo:60,  hi:69},
+    {label:'50〜59',   lo:50,  hi:59},
+    {label:'30〜49',   lo:30,  hi:49},
+    {label:'29点以下', lo:0,   hi:29}
   ];
   h+=`<div class="card"><h3>点数帯ごと</h3>`;
   h+=BANDS.map(b=>{
@@ -1218,10 +1228,11 @@ function renderStat(){
     if(!inB.length) return '';
     const best=Math.max(...inB.map(w=>w.score));
     const tops=inB.filter(w=>w.score===best);
-    const names=tops.slice(0,3).map(w=>esc(w.title)).join(' ／ ')
+    // 帯ごとの行は横に長くなるので、タイトルは10文字で打ち切る
+    const names=tops.slice(0,3).map(w=>esc(cut(w.title,10))).join(' / ')
       + (tops.length>3?` ほか${tops.length-3}件`:'');
     return `<div class="list-item" onclick="goBand(${b.lo},${b.hi})">
-      <div class="sc ${b.cls}">${inB.length}</div>
+      <div class="sc plain">${inB.length}</div>
       <div class="ttl">${b.label}　${inB.length}作品
         <div class="sub">最高 ${best}点：${names}</div></div>
     </div>`;
@@ -1231,11 +1242,17 @@ function renderStat(){
   h+=`<div class="card"><h3>年別の平均</h3>`;
   if(latestY!=null){
     const t=years[latestY];
-    h+=`<div class="note">直近（${t.label}）の平均は <b>${fx(avg(t.v))}</b> 点（${t.v.length}件）です。</div>`;
-    // 行を押すとその年だけに絞った一覧へ移る
-    h+=yk.map(y=>{ const b=years[y]; return `<div class="list-item" onclick="goYears(${b.lo},${b.hi},'${b.label}')">
-      <div class="sc ${scCls(avg(b.v))}">${fx(avg(b.v))}</div>
-      <div class="ttl">${b.label}<div class="sub">${b.v.length}件 ・ 押すと一覧へ</div></div></div>`; }).join('');
+    h+=`<div class="note">直近（${t.label}）の平均は <b>${fx(avg(t.w.map(x=>x.score)))}</b> 点（${t.w.length}件）です。</div>`;
+    // 行を押すとその年だけに絞った一覧へ移る。右にその年の最高得点作を出す
+    h+=yk.map(y=>{
+      const b=years[y], sc=b.w.map(x=>x.score), a=avg(sc);
+      const top=Math.max(...sc), tops=b.w.filter(x=>x.score===top);
+      const best=`<span class="best">${top}点 ${esc(tops[0].title)}${tops.length>1?` +${tops.length-1}`:''}</span>`;
+      return `<div class="list-item" onclick="goYears(${b.lo},${b.hi},'${esc(b.label)}')">
+        <div class="sc ${scCls(a)}">${fx(a)}</div>
+        <div class="ttl"><span class="ylab">${b.label}</span>${best}
+          <div class="sub">${b.w.length}件 ・ 押すと一覧へ</div></div></div>`;
+    }).join('');
   }else{
     h+=`<div class="note">視聴年が入っている作品がありません。</div>`;
   }
