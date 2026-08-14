@@ -162,14 +162,17 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
   border-bottom:1px solid var(--line);cursor:pointer;
 }
 .list-item:last-child{border-bottom:none}
+/* 点数はこの画面で一番読む値。行の高さはタイトル＋サブ行で決まっているので、
+   数字を大きくしても行は高くならない。余白を削って字面を稼ぐ。
+   幅は3桁（100）が入る値で固定し、行ごとにタイトルの開始位置がずれないようにする */
 .sc{
-  min-width:2.75rem;text-align:center;font-weight:800;font-size:1.06rem;
-  padding:2px .25rem;border-radius:6px;background:var(--panel2);
-  font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  min-width:2.9rem;text-align:center;font-weight:800;font-size:1.45rem;
+  line-height:1.15;padding:1px .2rem;border-radius:6px;background:var(--panel2);
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
 }
 /* 数字を読ませるための文字色。明るい帯は濃い文字、暗い帯は白文字にする */
-.sc.s100,.sc.s90,.sc.s80,.sc.s70,.sc.s60,.sc.s50{color:#1d1405;text-shadow:0 1px 0 rgba(255,255,255,.35)}
-.sc.s30,.sc.s0{color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35)}
+.sc.s100,.sc.s90,.sc.s80,.sc.s70,.sc.s60,.sc.s50{color:#1d1405}
+.sc.s30,.sc.s0{color:#fff}
 .sc.s100{background:var(--sc100)}
 .sc.s90{background:var(--sc90)}
 .sc.s80{background:var(--sc80)}
@@ -514,6 +517,11 @@ function go(name){
 }
 function openModal(id){ document.getElementById(id).classList.add('on'); }
 function closeModal(id){ document.getElementById(id).classList.remove('on'); }
+// 枠の外（背景の暗い部分）を押したら閉じる。押したのが枠自身の時だけ反応させる。
+// 中身を押した時は e.target が .inner 側になるので閉じない
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
+});
 
 // ---------- 視聴中 ----------
 function renderWatch(){
