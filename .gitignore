@@ -1,0 +1,21 @@
+# Claude Code のローカル設定（端末ごとに異なる）
+.claude/
+
+# Git Bash のクラッシュダンプ
+*.stackdump
+
+# 取り込み元の生データ（個人の視聴履歴のため公開しない）
+anime.xlsx
+*.xlsx
+*.xls
+*.xlsm
+_import/
+
+# 変換途中の中間ファイル
+*.tmp
+*.bak
+
+# OS が作るファイル
+Thumbs.db
+desktop.ini
+.DS_Store
