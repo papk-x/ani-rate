@@ -82,12 +82,23 @@ button.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;fo
 button.btn.sm{font-size:.82rem;padding:.3rem .53rem}
 button.btn:disabled{opacity:.45;cursor:default}
 
+/* ◎○△… の6段階。1タップで押せるよう横一列に並べる */
+.marks{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:4px}
 .mark{
-  flex:1; font-size:1.35rem; padding:.7rem 0; border-radius:10px;
+  font-size:1.3rem; padding:.66rem 0; border-radius:10px;
   border:1px solid var(--line); background:var(--panel2); color:var(--fg); cursor:pointer;
   font-family:inherit;
 }
-.mark.m1{color:var(--good)} .mark.m2{color:var(--fg2)} .mark.m3{color:var(--bad)}
+.mark.m1{color:var(--good);font-weight:700}
+.mark.m2{color:var(--good)}
+.mark.m3{color:var(--fg)}
+.mark.m4{color:var(--mid)}
+.mark.m5{color:var(--bad)}
+.mark.m6{color:var(--fg2)}
+.mark.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+.next-ep{font-size:1.5rem;font-weight:700;line-height:1.3;margin:.1rem 0 .35rem}
+.next-ep b{font-size:2.1rem;color:var(--accent);margin:0 .1em}
 
 input[type=text],input[type=number],input[type=password],textarea,select{
   font-family:inherit;font-size:1rem;padding:.47rem .6rem;border-radius:8px;
@@ -98,20 +109,45 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
 
 .eps{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
 .ep{
-  width:1.65rem;height:1.65rem;line-height:1.65rem;text-align:center;border-radius:5px;
+  width:1.9rem;height:1.9rem;line-height:1.9rem;text-align:center;border-radius:5px;
   font-size:.76rem;background:var(--panel2);border:1px solid var(--line);
+  cursor:pointer;position:relative;padding:0;font-family:inherit;color:var(--fg);
 }
-.ep.m1{background:var(--good);color:#fff;border-color:transparent}
-.ep.m2{background:var(--panel2)}
-.ep.m3{background:var(--bad);color:#fff;border-color:transparent}
+.ep.m1{background:var(--good);color:#fff;border-color:transparent;box-shadow:inset 0 0 0 2px var(--accent)}
+.ep.m2{background:var(--good);color:#fff;border-color:transparent}
+.ep.m3{background:var(--panel2)}
+.ep.m4{background:var(--mid);color:#fff;border-color:transparent}
+.ep.m5{background:var(--bad);color:#fff;border-color:transparent}
+.ep.m6{background:transparent;color:var(--fg2);border-style:dashed}
+/* メモが付いている話は右上に点を出す。どこにコメントを書いたか一目で分かる */
+.ep.has::after{
+  content:'';position:absolute;top:1px;right:1px;width:5px;height:5px;
+  border-radius:50%;background:var(--accent);box-shadow:0 0 0 1px var(--panel);
+}
 
-.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
-.grid5 button{
-  font-family:inherit;font-size:.94rem;padding:.6rem 0;border-radius:8px;
-  border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;
+/* 話ごとの振り返り一覧 */
+.eprow{display:flex;gap:8px;align-items:flex-start;padding:.5rem .1rem;border-bottom:1px solid var(--line);cursor:pointer}
+.eprow:last-child{border-bottom:none}
+.eprow .no{min-width:2.9rem;font-size:.82rem;color:var(--fg2);padding-top:.15rem}
+.eprow .mk{min-width:1.6rem;text-align:center;font-size:1.15rem;line-height:1.4}
+.eprow .mk.m1,.eprow .mk.m2{color:var(--good)}
+.eprow .mk.m4{color:var(--mid)}
+.eprow .mk.m5{color:var(--bad)}
+.eprow .mk.m6{color:var(--fg2)}
+.eprow .cm{flex:1;min-width:0;font-size:.94rem;white-space:pre-wrap;word-break:break-word}
+.eprow .cm.none{color:var(--fg2);font-size:.82rem}
+
+/* 点数入力。10の位と1の位を上下ボタンで動かす */
+.scval{text-align:center;font-size:3.4rem;font-weight:700;line-height:1.1;margin:.2rem 0}
+.stepper{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.stepper .col{display:grid;gap:5px;justify-items:center}
+.stepper .col .lb{font-size:.76rem;color:var(--fg2)}
+.stepper .col .dg{font-size:1.9rem;font-weight:700;line-height:1.2}
+.stepper button{
+  font-family:inherit;font-size:1.3rem;font-weight:700;width:100%;padding:.5rem 0;
+  border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;
 }
-.grid5 button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
-.scval{text-align:center;font-size:2.1rem;font-weight:700}
+.stepper button:active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 .list-item{
   display:flex;gap:10px;align-items:center;padding:.53rem .6rem;
@@ -168,7 +204,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 <body>
 
 <header>
-  <h1>ani-rate <span class="ver">1.02</span></h1>
+  <h1>ani-rate <span class="ver">1.03</span></h1>
   <span class="sync" id="sync-state">未同期</span>
 </header>
 
@@ -285,6 +321,9 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <input type="text" id="e-title">
     <label class="f">視聴年（任意）</label>
     <input type="number" id="e-year" placeholder="2026">
+    <label class="f">放送開始日（任意）</label>
+    <input type="date" id="e-air">
+    <div class="note" id="e-air-note"></div>
     <label class="f">状態</label>
     <select id="e-status">
       <option value="watching">視聴中</option>
@@ -311,7 +350,20 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <hr>
     <div class="note" id="sc-anchor"></div>
     <div class="scval" id="sc-val">—</div>
-    <div class="grid5" id="sc-grid"></div>
+    <div class="stepper">
+      <div class="col">
+        <div class="lb">10の位</div>
+        <button onclick="bumpScore(10)">＋</button>
+        <div class="dg" id="sc-d10">0</div>
+        <button onclick="bumpScore(-10)">−</button>
+      </div>
+      <div class="col">
+        <div class="lb">1の位</div>
+        <button onclick="bumpScore(1)">＋</button>
+        <div class="dg" id="sc-d1">0</div>
+        <button onclick="bumpScore(-1)">−</button>
+      </div>
+    </div>
     <label class="f">一言メモ</label>
     <textarea id="sc-note"></textarea>
     <div class="row" style="margin-top:12px">
@@ -321,15 +373,34 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
   </div>
 </div>
 
+<!-- 話ごとの振り返り（一覧から開く） -->
+<div class="modal" id="m-eps">
+  <div class="inner">
+    <h3 id="eps-title"></h3>
+    <div class="meta" id="eps-meta"></div>
+    <div id="eps-body"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn pri" onclick="openScoreFromEps()">採点する</button>
+      <button class="btn" onclick="openEditFromEps()">編集</button>
+      <span class="spacer"></span>
+      <button class="btn" onclick="closeModal('m-eps')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- 話ごとメモ -->
 <div class="modal" id="m-ep">
   <div class="inner">
     <h3 id="ep-title"></h3>
+    <label class="f">評価</label>
+    <div class="marks" id="ep-marks"></div>
     <label class="f">一言メモ</label>
     <textarea id="ep-note"></textarea>
     <div class="row" style="margin-top:12px">
       <button class="btn pri" onclick="saveEpNote()">保存</button>
       <button class="btn" onclick="closeModal('m-ep')">閉じる</button>
+      <span class="spacer"></span>
+      <button class="btn" onclick="delEp()">この話を削除</button>
     </div>
   </div>
 </div>
@@ -339,10 +410,15 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 
 const LS_DB='anirate_db', LS_TOKEN='anirate_token', LS_GIST='anirate_gist',
       LS_PEND='anirate_pending', LS_FS='anirate_fs';
-const MARKS=['◎','○','△'];
+// 6段階。'-' は未回答で、参考平均の計算からは外す
+const MARKS=['☆','◎','○','△','×','-'];
+const MARK_PT={'☆':10,'◎':8,'○':6,'△':4,'×':2,'-':null};
 const ANCHOR_KEYS=[100,90,80,70,60,50];
+const MEDIA={movie:'劇場',ova:'OVA',sp:'特番',tv:''};
+const COUR=['','1月期','4月期','7月期','10月期'];
+const STATUS_JA={watching:'視聴中',done:'完走',dropped:'中断'};
 
-let DB=null, curId=null, curEp=null, scPick=null, gistBase=null;
+let DB=null, curId=null, curEp=null, epsId=null, epPick=null, scPick=null, gistBase=null;
 
 // ---------- 基盤 ----------
 function nowISO(){ return new Date().toISOString(); }
@@ -368,6 +444,29 @@ function save(touch){
 function nextSeq(){ return DB.works.reduce((m,w)=>Math.max(m, w.seq||0), 0) + 1; }
 function byId(id){ return DB.works.find(w=>w.id===id); }
 
+// ---------- 表示のための小道具 ----------
+function mkCls(m){ const i=MARKS.indexOf(m); return 'm'+(i<0?3:i+1); }
+// 視聴年。xlsx から推定した年は「推定」と付けて、確定した年と混ぜない
+function yearLabel(w){ return w.year? w.year+'年'+(w.yearEst?'（推定）':'') : ''; }
+// 放送日。日付が入っていればそれを、なければ取り込んだクールを出す
+function airLabel(w){
+  if(w.airDate) return w.airDate.replace(/-/g,'/')+' 放送開始';
+  const md = w.media && MEDIA[w.media] ? MEDIA[w.media] : '';
+  if(w.airYear) return w.airYear+'年'+(w.airCour?COUR[w.airCour]:'')+(md?' '+md:'')+' 放送';
+  return md;
+}
+function epChip(w,e,i){
+  return `<button class="ep ${mkCls(e.mark)}${e.note?' has':''}" title="${esc(e.note||'')}"
+    onclick="event.stopPropagation();openEp('${w.id}',${i})">${e.no}</button>`;
+}
+// 参考平均。'-'（未回答）は分母から外す
+function markStats(eps){
+  const c={}; MARKS.forEach(m=>c[m]=0);
+  eps.forEach(e=>{ if(c[e.mark]!=null) c[e.mark]++; });
+  const v=eps.filter(e=>MARK_PT[e.mark]!=null);
+  return {c, n:v.length, ref: v.length? v.reduce((s,e)=>s+MARK_PT[e.mark],0)/v.length*10 : null};
+}
+
 // ---------- 画面遷移 ----------
 function go(name){
   ['watch','score','list','stat','conf'].forEach(n=>{
@@ -390,18 +489,20 @@ function renderWatch(){
   if(!list.length){ el.innerHTML='<div class="empty">視聴中の作品はありません。<br>「＋ 作品を追加」から登録してください。</div>'; return; }
   el.innerHTML=list.map(w=>{
     const next=(w.episodes||[]).length+1;
-    const eps=(w.episodes||[]).map(e=>
-      `<div class="ep m${MARKS.indexOf(e.mark)+1}" title="${esc(e.note||'')}">${e.no}</div>`).join('');
+    const eps=(w.episodes||[]).map((e,i)=>epChip(w,e,i)).join('');
+    const sub=[yearLabel(w),airLabel(w)].filter(Boolean).join(' ・ ');
     return `<div class="card">
       <h3>${esc(w.title)}</h3>
-      <div class="meta">次は ${next} 話${w.year?' ・ '+w.year+'年':''}</div>
-      <div class="row">
+      <div class="next-ep">次は <b>${next}</b> 話</div>
+      ${sub?`<div class="meta">${esc(sub)}</div>`:''}
+      <div class="marks">
         ${MARKS.map((m,i)=>`<button class="mark m${i+1}" onclick="addEp('${w.id}','${m}')">${m}</button>`).join('')}
       </div>
       ${eps?`<div class="eps">${eps}</div>`:''}
       <div class="row" style="margin-top:10px">
         <button class="btn sm" onclick="undoEp('${w.id}')">1話戻す</button>
         <button class="btn sm" onclick="epNote('${w.id}')">直前にメモ</button>
+        <button class="btn sm" onclick="openEps('${w.id}')">振り返り</button>
         <span class="spacer"></span>
         <button class="btn sm" onclick="openEdit('${w.id}')">編集</button>
         <button class="btn sm pri" onclick="finish('${w.id}')">完走</button>
@@ -421,16 +522,87 @@ function undoEp(id){
 }
 function epNote(id){
   const w=byId(id); if(!w||!(w.episodes||[]).length){ alert('先に話を記録してください。'); return; }
-  curId=id; curEp=w.episodes.length-1;
-  document.getElementById('ep-title').textContent=w.title+' '+w.episodes[curEp].no+'話';
-  document.getElementById('ep-note').value=w.episodes[curEp].note||'';
+  openEp(id, w.episodes.length-1);
+}
+
+// 記録済みの話をあとから開く。評価の付け直しとメモの書き足しができる
+function openEp(id,idx){
+  const w=byId(id); if(!w||!(w.episodes||[])[idx]) return;
+  curId=id; curEp=idx; epPick=w.episodes[idx].mark;
+  document.getElementById('ep-title').textContent=w.title+' '+w.episodes[idx].no+'話';
+  document.getElementById('ep-note').value=w.episodes[idx].note||'';
+  buildEpMarks();
   openModal('m-ep');
 }
-function saveEpNote(){
-  const w=byId(curId); if(!w) return;
-  w.episodes[curEp].note=document.getElementById('ep-note').value.trim();
-  save(); closeModal('m-ep'); renderWatch(); queueSync();
+function buildEpMarks(){
+  document.getElementById('ep-marks').innerHTML=MARKS.map((m,i)=>
+    `<button class="mark m${i+1}${m===epPick?' on':''}" onclick="pickEpMark('${m}')">${m}</button>`).join('');
 }
+function pickEpMark(m){ epPick=m; buildEpMarks(); }
+function saveEpNote(){
+  const w=byId(curId); if(!w||!(w.episodes||[])[curEp]) return;
+  w.episodes[curEp].note=document.getElementById('ep-note').value.trim();
+  if(epPick) w.episodes[curEp].mark=epPick;
+  save(); closeModal('m-ep'); refreshEpViews(); queueSync();
+}
+function delEp(){
+  const w=byId(curId); if(!w||!(w.episodes||[])[curEp]) return;
+  if(!confirm('この話の記録を削除します。よろしいですか。')) return;
+  w.episodes.splice(curEp,1);
+  w.episodes.forEach((e,i)=>{ e.no=i+1; });
+  save(); closeModal('m-ep'); refreshEpViews(); queueSync();
+}
+// 話を直すと視聴中カード・振り返り・採点画面のどれもが古くなるので、開いているものだけ描き直す
+function refreshEpViews(){
+  renderWatch();
+  if(document.getElementById('m-eps').classList.contains('on')) renderEps();
+  if(document.getElementById('m-score').classList.contains('on')) renderScoreEps();
+}
+
+// ---------- 話ごとの振り返り ----------
+function openEps(id){
+  const w=byId(id); if(!w) return;
+  epsId=id;
+  document.getElementById('eps-title').textContent=w.title;
+  renderEps();
+  openModal('m-eps');
+}
+function renderEps(){
+  const w=byId(epsId); if(!w) return;
+  const eps=w.episodes||[];
+  document.getElementById('eps-meta').innerHTML=
+    [ w.score!=null?`<b>${esc(w.score)}点</b>`:'未採点',
+      STATUS_JA[w.status]||'', esc(yearLabel(w)), esc(airLabel(w)), '#'+esc(w.seq) ]
+    .filter(Boolean).join(' ・ ')
+    + (w.note?`<div style="margin-top:4px">${esc(w.note)}</div>`:'');
+  let h='';
+  if(eps.length){
+    const s=markStats(eps);
+    h+=`<div class="eps">${eps.map((e,i)=>epChip(w,e,i)).join('')}</div>`;
+    h+=`<div class="note">${MARKS.map(m=>m+s.c[m]).join(' ')}${s.ref!=null?` ／ 参考平均 ${s.ref.toFixed(1)}点`:''}</div>`;
+    h+=eps.map((e,i)=>`<div class="eprow" onclick="openEp('${w.id}',${i})">
+      <div class="no">${e.no}話</div>
+      <div class="mk ${mkCls(e.mark)}">${esc(e.mark)}</div>
+      <div class="cm${e.note?'':' none'}">${e.note?esc(e.note):'（メモなし）'}</div>
+    </div>`).join('');
+  }else{
+    h+='<div class="note">話ごとの記録はありません。</div>';
+  }
+  const sc=w.epScores||[];
+  if(sc.length) h+=`<div class="note">xlsx 由来の話ごと点数：${sc.map(x=>x.no+'話 '+x.score).join(' / ')}</div>`;
+  h+=`<div class="row" style="margin-top:8px"><button class="btn sm" onclick="addEpFromEps()">＋ 話を追加</button></div>`;
+  document.getElementById('eps-body').innerHTML=h;
+}
+function addEpFromEps(){
+  const w=byId(epsId); if(!w) return;
+  w.episodes=w.episodes||[];
+  w.episodes.push({no:w.episodes.length+1, mark:'-', note:'', at:nowISO()});
+  save(); renderEps(); queueSync();
+  openEp(w.id, w.episodes.length-1);
+}
+function openScoreFromEps(){ const id=epsId; closeModal('m-eps'); openScore(id); }
+function openEditFromEps(){ const id=epsId; closeModal('m-eps'); openEdit(id); }
+
 function finish(id){
   const w=byId(id); if(!w) return;
   w.status='done'; save(); queueSync();
@@ -453,27 +625,48 @@ function openScore(id){
   const w=byId(id); if(!w) return;
   curId=id; scPick=w.score!=null?w.score:null;
   document.getElementById('sc-title').textContent=w.title;
-  const eps=(w.episodes||[]);
-  document.getElementById('sc-eps').innerHTML = eps.length
-    ? '<div class="eps">'+eps.map(e=>`<div class="ep m${MARKS.indexOf(e.mark)+1}" title="${esc(e.note||'')}">${e.no}</div>`).join('')+'</div>'
-    : '<div class="note">話ごとの記録はありません。</div>';
-  const c=[0,0,0]; eps.forEach(e=>{ const i=MARKS.indexOf(e.mark); if(i>=0) c[i]++; });
-  const ref = eps.length ? (c[0]*10+c[1]*7+c[2]*4)/eps.length*10 : null;
-  document.getElementById('sc-ref').textContent = eps.length
-    ? `◎${c[0]} ○${c[1]} △${c[2]} ／ 参考平均 ${ref.toFixed(1)}点（最終点数はご自身の判断で）` : '';
+  renderScoreEps();
   document.getElementById('sc-anchor').innerHTML = ANCHOR_KEYS
     .filter(k=>DB.anchors[k]).map(k=>`${k}＝${esc(DB.anchors[k])}`).join(' ／ ') || '基準作品は設定タブで登録できます。';
   document.getElementById('sc-note').value=w.note||'';
-  buildScoreGrid();
+  showScore();
   openModal('m-score');
 }
-function buildScoreGrid(){
-  const g=document.getElementById('sc-grid'); let h='';
-  for(let v=100; v>=0; v-=5) h+=`<button class="${v===scPick?'on':''}" onclick="pickScore(${v})">${v}</button>`;
-  g.innerHTML=h;
-  document.getElementById('sc-val').textContent = scPick==null?'—':scPick;
+// 採点しながら各話のコメントを読み返せるようにする。ここが採点の根拠になる
+function renderScoreEps(){
+  const w=byId(curId); if(!w) return;
+  const eps=w.episodes||[];
+  let h='';
+  if(eps.length){
+    h+=`<div class="eps">${eps.map((e,i)=>epChip(w,e,i)).join('')}</div>`;
+    const noted=eps.filter(e=>e.note);
+    if(noted.length) h+=noted.map(e=>{
+      const i=eps.indexOf(e);
+      return `<div class="eprow" onclick="openEp('${w.id}',${i})">
+        <div class="no">${e.no}話</div>
+        <div class="mk ${mkCls(e.mark)}">${esc(e.mark)}</div>
+        <div class="cm">${esc(e.note)}</div></div>`;
+    }).join('');
+  }else{
+    h+='<div class="note">話ごとの記録はありません。</div>';
+  }
+  document.getElementById('sc-eps').innerHTML=h;
+  const s=markStats(eps);
+  document.getElementById('sc-ref').textContent = eps.length
+    ? `${MARKS.map(m=>m+s.c[m]).join(' ')}${s.ref!=null?` ／ 参考平均 ${s.ref.toFixed(1)}点`:''}（最終点数はご自身の判断で）` : '';
 }
-function pickScore(v){ scPick=v; buildScoreGrid(); }
+// 1点刻み。10の位と1の位を別々に動かす
+function bumpScore(d){
+  const v=(scPick==null?0:scPick)+d;
+  scPick=Math.max(0, Math.min(100, v));
+  showScore();
+}
+function showScore(){
+  const v=scPick==null?0:scPick;
+  document.getElementById('sc-val').textContent = scPick==null?'—':v;
+  document.getElementById('sc-d10').textContent = Math.floor(v/10);
+  document.getElementById('sc-d1').textContent  = v%10;
+}
 function saveScore(){
   if(scPick==null){ alert('点数を選んでください。'); return; }
   const w=byId(curId); if(!w) return;
@@ -490,25 +683,41 @@ function openEdit(id){
   document.getElementById('edit-title').textContent = w?'作品を編集':'作品を追加';
   document.getElementById('e-title').value = w?w.title:'';
   document.getElementById('e-year').value  = w&&w.year?w.year:'';
+  document.getElementById('e-air').value   = w&&w.airDate?w.airDate:'';
   document.getElementById('e-status').value= w?w.status:'watching';
   document.getElementById('e-note').value  = w?(w.note||''):'';
   document.getElementById('e-del').style.display = w?'':'none';
+  // 取り込んだクールは日付が無いので、参考として下に出す
+  const cour = w && !w.airDate ? airLabel(w) : '';
+  document.getElementById('e-air-note').textContent =
+    cour ? `取り込み時の情報：${cour}` : '放送開始日を入れると視聴年の裏付けになります。';
   openModal('m-edit');
 }
 function saveEdit(){
   const t=document.getElementById('e-title').value.trim();
   if(!t){ alert('タイトルを入力してください。'); return; }
   const y=parseInt(document.getElementById('e-year').value,10);
+  const air=document.getElementById('e-air').value||null;
   const st=document.getElementById('e-status').value;
   const nt=document.getElementById('e-note').value.trim();
   let w=curId?byId(curId):null;
   if(!w){
-    w={id:uid(), seq:nextSeq(), title:t, year:isNaN(y)?null:y, status:st,
+    w={id:uid(), seq:nextSeq(), title:t, year:isNaN(y)?null:y, yearEst:false,
+       airDate:air, airYear:null, airCour:null, media:null, status:st,
        episodes:[], epScores:[], score:null, scoredAt:null,
        reScore:null, reScoredAt:null, note:nt, source:'app'};
+    // 年が空のまま放送日だけ入れた時は、その年を視聴年として当てておく
+    if(w.year==null && air) w.year=parseInt(air.slice(0,4),10);
     DB.works.push(w);
   }else{
-    w.title=t; w.year=isNaN(y)?null:y; w.status=st; w.note=nt;
+    w.title=t; w.status=st; w.note=nt; w.airDate=air;
+    if(isNaN(y)){
+      // 年が空でも放送日を入れたならその年を当てる（推定のまま）
+      if(air){ w.year=parseInt(air.slice(0,4),10); w.yearEst=true; }
+      else { w.year=null; w.yearEst=false; }
+    }else if(w.year!==y){
+      w.year=y; w.yearEst=false;                       // 書き換えた年は確定扱い
+    }
   }
   save(); closeModal('m-edit'); go('watch'); queueSync();
 }
@@ -536,12 +745,20 @@ function renderList(){
   document.getElementById('list-count').textContent=`${a.length} 件 / 全 ${DB.works.length} 件`;
   const el=document.getElementById('all-list');
   if(!a.length){ el.innerHTML='<div class="empty">該当なし</div>'; return; }
-  el.innerHTML=a.slice(0,600).map(w=>`<div class="list-item" onclick="openScore('${w.id}')">
-    <div class="sc ${scCls(w.score)}">${w.score==null?'—':w.score}</div>
-    <div class="ttl">${esc(w.title)}
-      <div class="sub">#${w.seq}${w.year?' ・ '+w.year+'年':''}${w.status==='watching'?' ・ 視聴中':''}${w.status==='dropped'?' ・ 中断':''}</div>
-    </div>
-  </div>`).join('') + (a.length>600?'<div class="empty">先頭600件のみ表示しています。検索で絞り込んでください。</div>':'');
+  // 行をタップすると振り返り（話ごとのマークとコメント）が開く
+  el.innerHTML=a.slice(0,600).map(w=>{
+    const notes=(w.episodes||[]).filter(e=>e.note).length;
+    const sub=[ '#'+w.seq, yearLabel(w),
+                w.status!=='done'?(STATUS_JA[w.status]||''):'',
+                (w.episodes||[]).length?`${(w.episodes||[]).length}話記録`:'',
+                notes?`メモ${notes}`:'' ].filter(Boolean).join(' ・ ');
+    return `<div class="list-item" onclick="openEps('${w.id}')">
+      <div class="sc ${scCls(w.score)}">${w.score==null?'—':w.score}</div>
+      <div class="ttl">${esc(w.title)}
+        <div class="sub">${esc(sub)}</div>
+      </div>
+    </div>`;
+  }).join('') + (a.length>600?'<div class="empty">先頭600件のみ表示しています。検索で絞り込んでください。</div>':'');
 }
 
 // ---------- 統計 ----------
@@ -575,7 +792,9 @@ function renderStat(){
     h+=`<div class="note">視聴年が入っている作品がありません。</div>`;
   }
   const noYear=scored.filter(w=>!w.year).length;
-  if(noYear) h+=`<div class="note">※ 視聴年が不明な ${noYear} 件は年別集計から除外しています。取り込んだ過去ログには視聴日が無いため、年別ではなく「直近N件」で傾向を見てください。</div>`;
+  const estY=scored.filter(w=>w.year&&w.yearEst).length;
+  if(noYear) h+=`<div class="note">※ 視聴年が不明な ${noYear} 件は年別集計から除外しています。年別ではなく「直近N件」でも傾向を見てください。</div>`;
+  if(estY)   h+=`<div class="note">※ うち ${estY} 件は放送クールと視聴順から推定した年です。前後1年ずれることがあります。</div>`;
   h+=`</div>`;
 
   h+=`<div class="card"><h3>点数の分布</h3><div class="histwrap"><div class="hist">`;
@@ -652,7 +871,12 @@ function doImport(){
       DB.works.push({
         id:uid(), seq: s.seq!=null?s.seq:nextSeq(), title:t,
         year: s.year!=null?s.year:null,
-        status: s.score!=null?'done':'watching',
+        yearEst: !!s.yearEst,
+        airDate: s.airDate||null,
+        airYear: s.airYear!=null?s.airYear:null,
+        airCour: s.airCour!=null?s.airCour:null,
+        media: s.media||null,
+        status: s.status || (s.score!=null?'done':'watching'),
         episodes: s.episodes||[], epScores: s.epScores||[],
         score: s.score!=null?s.score:null,
         scoredAt: s.scoredAt||null, reScore:null, reScoredAt:null,
