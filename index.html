@@ -366,7 +366,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <label class="f">メモ</label>
     <textarea id="e-note"></textarea>
     <div class="foot">
-      <button class="btn" onclick="closeModal('m-edit')">閉じる</button>
+      <button class="btn" onclick="tryClose('m-edit')">閉じる</button>
       <button class="btn" id="e-del" onclick="delWork()">削除</button>
       <span class="right"><button class="btn pri" onclick="saveEdit()">保存</button></span>
     </div>
@@ -400,7 +400,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <textarea id="sc-note"></textarea>
     <div class="note">点数を付けずに記録だけ残せます。平均・分布・採点待ちには入りません。</div>
     <div class="foot">
-      <button class="btn" onclick="closeModal('m-score')">閉じる</button>
+      <button class="btn" onclick="tryClose('m-score')">閉じる</button>
       <button class="btn" onclick="saveScore(true)">点数なし</button>
       <span class="right"><button class="btn pri" onclick="saveScore()">この点数で確定</button></span>
     </div>
@@ -414,7 +414,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <div class="meta" id="eps-meta"></div>
     <div id="eps-body"></div>
     <div class="foot">
-      <button class="btn" onclick="closeModal('m-eps')">閉じる</button>
+      <button class="btn" onclick="tryClose('m-eps')">閉じる</button>
       <button class="btn" onclick="openEditFromEps()">編集</button>
       <span class="right"><button class="btn pri" onclick="openScoreFromEps()">採点する</button></span>
     </div>
@@ -430,7 +430,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <label class="f">一言メモ</label>
     <textarea id="ep-note"></textarea>
     <div class="foot">
-      <button class="btn" onclick="closeModal('m-ep')">閉じる</button>
+      <button class="btn" onclick="tryClose('m-ep')">閉じる</button>
       <button class="btn" onclick="delEp()">この話を削除</button>
       <span class="right"><button class="btn pri" onclick="saveEpNote()">保存</button></span>
     </div>
@@ -515,12 +515,32 @@ function go(name){
   if(name==='stat')  renderStat();
   if(name==='conf')  renderConf();
 }
-function openModal(id){ document.getElementById(id).classList.add('on'); }
+// 開いた時点の入力内容を控えておき、閉じる時に見比べて「書きかけ」を判定する
+const dirtyBase={};
+function modalState(id){
+  const v=x=>document.getElementById(x).value;
+  if(id==='m-edit')  return JSON.stringify(['e-title','e-year','e-air','e-status','e-note'].map(v));
+  if(id==='m-score') return JSON.stringify([v('sc-note'), scPick]);
+  if(id==='m-ep')    return JSON.stringify([v('ep-note'), epPick]);
+  return null;   // 振り返り（m-eps）は入力欄が無いので判定しない
+}
+function openModal(id){
+  dirtyBase[id]=modalState(id);      // 開く側で値を入れ終えた後に呼ばれる
+  document.getElementById(id).classList.add('on');
+}
 function closeModal(id){ document.getElementById(id).classList.remove('on'); }
+// 保存せずに閉じようとした時だけ確認する。書きかけが無ければそのまま閉じる
+function tryClose(id){
+  const now=modalState(id);
+  if(now!=null && dirtyBase[id]!=null && now!==dirtyBase[id]){
+    if(!confirm('書きかけの内容があります。保存せずに閉じますか。')) return;
+  }
+  closeModal(id);
+}
 // 枠の外（背景の暗い部分）を押したら閉じる。押したのが枠自身の時だけ反応させる。
 // 中身を押した時は e.target が .inner 側になるので閉じない
 document.querySelectorAll('.modal').forEach(m=>{
-  m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
+  m.addEventListener('click', e=>{ if(e.target===m) tryClose(m.id); });
 });
 
 // ---------- 視聴中 ----------
