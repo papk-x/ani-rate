@@ -9,9 +9,14 @@ import json, sys, io, os, re, time, unicodedata, urllib.request, urllib.error, d
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-DEF_IN = r".\_import\anime_import.json"
-SRC = sys.argv[1] if len(sys.argv) > 1 else DEF_IN
-DST = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(SRC), "anime_years.json")
+# 入力の場所は端末ごとに違う。公開リポジトリなので実際のパスは書かない。
+#   1. 引数    python tools/fill_years.py "D:\path\_import\anime_import.json"
+#   2. 環境変数 ANI_IMPORT
+#   3. 既定     カレントディレクトリの _import/anime_import.json
+SRC = sys.argv[1] if len(sys.argv) > 1 else (
+    os.environ.get("ANI_IMPORT") or os.path.join("_import", "anime_import.json"))
+DST = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
+    os.path.dirname(os.path.abspath(SRC)), "anime_years.json")
 
 API = 'https://graphql.anilist.co'
 HDR = {'Content-Type': 'application/json', 'Accept': 'application/json',
@@ -19,20 +24,11 @@ HDR = {'Content-Type': 'application/json', 'Accept': 'application/json',
 BATCH = 20          # エイリアスで1リクエストにまとめる件数
 WAIT = 2.5          # AniList のレート制限は30リクエスト/分
 
-# AniList の検索と綴りが合わず、どう崩しても当たらないもの。放送年を直接入れる。
-# （理由は _import と同じ場所に出す「取れなかった作品」の一覧を参照）
-MANUAL = {
-    'ゆるゆり さん☆ハイ！ (第3期)': 2015,
-    'ミス・モノクローム The Animetion 3': 2015,
-    'ヤングブラック・ジャック': 2015,
-    'おへんろ。～八十八歩記～': 2015,
-    'ステラ女学院高等科C3部': 2013,
-    'マイリトルポニー～トモダチは魔法～': 2010,
-    '新編集版 PSYCHO-PASS サイコパス': 2014,
-    'ゴクジョッ。～極楽院女子高寮物語～': 2012,
-    'もし高校野球の女子マネージャーがドラッカーの『マネジメント』を読んだら': 2011,
-    '映画 ふたりはプリキュア Max Heart': 2005,
-}
+# AniList の検索と綴りが合わず、どう崩しても当たらないものを手で埋める表。
+# 作品名は個人の視聴履歴そのものなので、公開リポジトリには置かず
+# 入力と同じフォルダの manual_years.json（gitignore対象）から読む。
+#   { "作品名": 2015, ... }
+MANUAL = {}
 
 FMT = {'TV': 'tv', 'TV_SHORT': 'tv', 'ONA': 'tv', 'MOVIE': 'movie', 'OVA': 'ova', 'SPECIAL': 'sp'}
 
@@ -84,6 +80,11 @@ def ask(queries):
 # ---------------------------------------------------------------- 読み込み
 src = json.load(open(SRC, encoding='utf-8'))
 works = src['works']
+
+man_path = os.path.join(os.path.dirname(os.path.abspath(SRC)), 'manual_years.json')
+if os.path.exists(man_path):
+    MANUAL.update(json.load(open(man_path, encoding='utf-8')))
+    print(f'手入力の年: {man_path} から {len(MANUAL)} 件')
 targets = [w for w in works if w.get('year') is None]
 print(f'入力: {SRC}')
 print(f'全 {len(works)} 件 / 年が無い {len(targets)} 件')

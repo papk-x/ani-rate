@@ -6,9 +6,12 @@ import openpyxl, json, sys, io, os, re, datetime
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else \
-    r".\anime.xlsx"
-OUTDIR = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(SRC), "_import")
+# 入力の場所は端末ごとに違う。公開リポジトリなので実際のパスは書かない。
+#   1. 引数    python tools/xlsx_to_json.py "D:\path\anime.xlsx"
+#   2. 環境変数 ANI_XLSX
+#   3. 既定     カレントディレクトリの anime.xlsx
+SRC = sys.argv[1] if len(sys.argv) > 1 else (os.environ.get("ANI_XLSX") or "anime.xlsx")
+OUTDIR = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.abspath(SRC)), "_import")
 SHEET = 'Main1'
 
 EP0 = 9            # J列 = 1話。n話 = 列インデックス 8+n
