@@ -15,19 +15,18 @@
   --bg:#f6f7f9; --panel:#ffffff; --panel2:#eef0f4; --line:#d8dce4;
   --fg:#1b1d22; --fg2:#5c6270; --accent:#3d7dff; --accent2:#e8f0ff;
   --good:#2e9e5b; --mid:#c99a20; --bad:#c9482f;
-  /* 点数の帯。50点以上は10点ごと。50点未満は 30〜49 と 〜29 の2色 */
-  --sc0:#8c2f1f;  --sc30:#c9482f;
-  --sc50:#e07b39; --sc60:#d9a520; --sc70:#7fa62c;
-  --sc80:#2e9e5b; --sc90:#3d7dff; --sc100:#8b5cf6;
+  /* 点数の帯。50点以上は10点ごと。50点未満は 30〜49 と 〜29 の2色。
+     バッジは背景色を持つので、ライト・ダークで同じ値を使う。
+     明るい帯に白文字を乗せると読めないため、文字色は下の .sc で帯ごとに変える */
+  --sc0:#8c2f1f;  --sc30:#c44228;
+  --sc50:#f0913f; --sc60:#e8c53a; --sc70:#a6cf42;
+  --sc80:#4cc783; --sc90:#7aa9ff; --sc100:#bb95fa;
 }
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#15171b; --panel:#1e2127; --panel2:#272b33; --line:#343a45;
     --fg:#e6e8ec; --fg2:#98a0ae; --accent:#5b93ff; --accent2:#22304d;
     --good:#48c07a; --mid:#e0b53f; --bad:#e2694c;
-    --sc0:#a34430;  --sc30:#e2694c;
-    --sc50:#ef8b45; --sc60:#e6b833; --sc70:#93bb3e;
-    --sc80:#48c07a; --sc90:#5b93ff; --sc100:#a78bfa;
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -164,17 +163,21 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
 }
 .list-item:last-child{border-bottom:none}
 .sc{
-  min-width:2.6rem;text-align:center;font-weight:700;font-size:1rem;
-  padding:1px 0;border-radius:6px;background:var(--panel2);
+  min-width:2.75rem;text-align:center;font-weight:800;font-size:1.06rem;
+  padding:2px .25rem;border-radius:6px;background:var(--panel2);
+  font-variant-numeric:tabular-nums;letter-spacing:.01em;
 }
-.sc.s100{background:var(--sc100);color:#fff}
-.sc.s90{background:var(--sc90);color:#fff}
-.sc.s80{background:var(--sc80);color:#fff}
-.sc.s70{background:var(--sc70);color:#fff}
-.sc.s60{background:var(--sc60);color:#fff}
-.sc.s50{background:var(--sc50);color:#fff}
-.sc.s30{background:var(--sc30);color:#fff}
-.sc.s0{background:var(--sc0);color:#fff}
+/* 数字を読ませるための文字色。明るい帯は濃い文字、暗い帯は白文字にする */
+.sc.s100,.sc.s90,.sc.s80,.sc.s70,.sc.s60,.sc.s50{color:#1d1405;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.sc.s30,.sc.s0{color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35)}
+.sc.s100{background:var(--sc100)}
+.sc.s90{background:var(--sc90)}
+.sc.s80{background:var(--sc80)}
+.sc.s70{background:var(--sc70)}
+.sc.s60{background:var(--sc60)}
+.sc.s50{background:var(--sc50)}
+.sc.s30{background:var(--sc30)}
+.sc.s0{background:var(--sc0)}
 .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sub{font-size:.76rem;color:var(--fg2);line-height:1.25}
 
@@ -435,7 +438,8 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 'use strict';
 
 const LS_DB='anirate_db', LS_TOKEN='anirate_token', LS_GIST='anirate_gist',
-      LS_PEND='anirate_pending', LS_FS='anirate_fs';
+      LS_PEND='anirate_pending', LS_FS='anirate_fs', LS_TAB='anirate_tab';
+const TABS=['watch','score','list','stat','conf'];
 // 6段階。'-' は未回答で、参考平均の計算からは外す
 const MARKS=['☆','◎','○','△','×','-'];
 const MARK_PT={'☆':10,'◎':8,'○':6,'△':4,'×':2,'-':null};
@@ -495,10 +499,13 @@ function markStats(eps){
 
 // ---------- 画面遷移 ----------
 function go(name){
-  ['watch','score','list','stat','conf'].forEach(n=>{
+  if(!TABS.includes(name)) name='watch';
+  TABS.forEach(n=>{
     document.getElementById('s-'+n).classList.toggle('active', n===name);
     document.getElementById('n-'+n).classList.toggle('on', n===name);
   });
+  // 開いていたタブは端末ごとに覚える。次回起動時はここから始める（Gist には送らない）
+  try{ localStorage.setItem(LS_TAB, name); }catch(e){}
   if(name==='watch') renderWatch();
   if(name==='score') renderScoreList();
   if(name==='list')  renderList();
@@ -708,7 +715,7 @@ function saveScore(noScore){
     if(w.status!=='done') w.status='done';
   }
   w.note=document.getElementById('sc-note').value.trim();
-  save(); closeModal('m-score'); go('score'); queueSync();
+  save(); closeModal('m-score'); reRender(); queueSync();
 }
 
 // ---------- 追加・編集 ----------
@@ -736,6 +743,7 @@ function saveEdit(){
   const st=document.getElementById('e-status').value;
   const nt=document.getElementById('e-note').value.trim();
   let w=curId?byId(curId):null;
+  const isNew=!w;
   if(!w){
     w={id:uid(), seq:nextSeq(), title:t, year:isNaN(y)?null:y, yearEst:false,
        airDate:air, airYear:null, airCour:null, media:null, status:st,
@@ -754,12 +762,13 @@ function saveEdit(){
       w.year=y; w.yearEst=false;                       // 書き換えた年は確定扱い
     }
   }
-  save(); closeModal('m-edit'); go('watch'); queueSync();
+  // 新規追加の時だけ視聴中へ移る。既存の編集は開いていたタブに留まる
+  save(); closeModal('m-edit'); isNew?go('watch'):reRender(); queueSync();
 }
 function delWork(){
   if(!curId||!confirm('この作品を削除します。よろしいですか。')) return;
   DB.works=DB.works.filter(w=>w.id!==curId);
-  save(); closeModal('m-edit'); go('watch'); queueSync();
+  save(); closeModal('m-edit'); reRender(); queueSync();
 }
 
 // ---------- 一覧 ----------
@@ -788,8 +797,8 @@ function renderList(){
   document.getElementById('list-count').textContent=`${a.length} 件 / 全 ${DB.works.length} 件`;
   const el=document.getElementById('all-list');
   if(!a.length){ el.innerHTML='<div class="empty">該当なし</div>'; return; }
-  // 行をタップすると振り返り（話ごとのマークとコメント）が開く
-  el.innerHTML=a.slice(0,600).map(w=>{
+  // 行をタップすると振り返り（話ごとのマークとコメント）が開く。件数の上限は設けない
+  el.innerHTML=a.map(w=>{
     const notes=(w.episodes||[]).filter(e=>e.note).length;
     const sub=[ '#'+w.seq, yearLabel(w),
                 w.status!=='done'?(STATUS_JA[w.status]||''):'',
@@ -802,7 +811,7 @@ function renderList(){
         <div class="sub">${esc(sub)}</div>
       </div>
     </div>`;
-  }).join('') + (a.length>600?'<div class="empty">先頭600件のみ表示しています。検索で絞り込んでください。</div>':'');
+  }).join('');
 }
 
 // ---------- 統計 ----------
@@ -974,14 +983,39 @@ function showSync(){
   setSync(isPending()?'未送信あり':'同期済み');
 }
 
-async function gh(path,opt){
+// ETag を覚えておき、取得は条件付きGETにする。
+// 中身が変わっていなければ 304 が返り、本文（作品775件で約250KB）は流れず、
+// GitHub のレート制限も消費しない。定期的に見に行っても通信はほぼゼロで済む。
+let gistETag=null, pushing=false;
+
+async function ghFetch(path,opt){
   const {tk}=ghConf();
   if(!tk) throw new Error('トークンが未設定です。');
-  const r=await fetch('https://api.github.com'+path, Object.assign({
-    headers:{'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json'}
-  },opt||{}));
-  if(!r.ok) throw new Error('GitHub API '+r.status);
-  return r.json();
+  const o=Object.assign({cache:'no-store'}, opt||{});
+  o.headers=Object.assign(
+    {'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json'}, o.headers||{});
+  const r=await fetch('https://api.github.com'+path, o);
+  if(!r.ok && r.status!==304) throw new Error('GitHub API '+r.status);
+  return r;
+}
+async function gh(path,opt){ return (await ghFetch(path,opt)).json(); }
+
+// Gist の中身を読む。useEtag=true で未更新なら {notModified:true} だけ返す
+async function gistRead(useEtag){
+  const {id}=ghConf(); if(!id) throw new Error('Gist ID が未設定です。');
+  const r=await ghFetch('/gists/'+id,
+    useEtag && gistETag ? {headers:{'If-None-Match':gistETag}} : null);
+  if(r.status===304) return {notModified:true};
+  const et=r.headers.get('ETag'); if(et) gistETag=et;
+  const j=await r.json();
+  const f=j.files&&j.files[GFILE];
+  if(!f) return {missing:true};
+  const txt=f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  return {data:JSON.parse(txt)};
+}
+// 今開いているタブを描き直す。取り込みで中身が入れ替わった時に使う
+function reRender(){
+  go(TABS.find(n=>document.getElementById('s-'+n).classList.contains('active')) || 'watch');
 }
 async function gistCreate(){
   try{
@@ -996,43 +1030,57 @@ async function gistCreate(){
   }catch(e){ msg('gist-msg','失敗： '+e.message); }
 }
 async function gistPull(){
-  const {id}=ghConf();
-  if(!id){ msg('gist-msg','Gist ID が未設定です。'); return; }
   try{
-    const j=await gh('/gists/'+id);
-    const f=j.files&&j.files[GFILE];
-    if(!f){ msg('gist-msg','Gist に '+GFILE+' がありません。'); return; }
-    const txt=f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
-    const d=JSON.parse(txt);
+    const r=await gistRead(false);            // 手動なので必ず取り直す
+    if(r.missing){ msg('gist-msg','Gist に '+GFILE+' がありません。'); return; }
+    const d=r.data;
     if(!confirm(`Gist の内容でこの端末を上書きします。\nGist 側 ${(d.works||[]).length} 件 / この端末 ${DB.works.length} 件\nよろしいですか。`)) return;
     DB=d; gistBase=d.updatedAt; save(false);
-    setPending(false); showSync();
-    msg('gist-msg','取り込みました。'); go('watch');
+    setPending(false); showSync(); updateBadge();
+    msg('gist-msg','取り込みました。'); reRender();
   }catch(e){ msg('gist-msg','失敗： '+e.message); }
 }
 async function gistPush(manual){
   const {tk,id}=ghConf();
   if(!tk||!id){ if(manual) msg('gist-msg','トークンと Gist ID を設定してください。'); return; }
   if(!navigator.onLine){ setPending(true); showSync(); if(manual) msg('gist-msg','圏外です。オンライン復帰時に自動送信します。'); return; }
+  if(pushing) return;                         // 1回で約250KB 送るので二重送信させない
+  pushing=true;
   try{
-    const cur=await gh('/gists/'+id);
-    const f=cur.files&&cur.files[GFILE];
-    if(f){
-      const txt=f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
-      const remote=JSON.parse(txt);
+    // 変わっていなければ 304 が返るだけ。その時は競合しようがないのでそのまま送る
+    const r=await gistRead(true);
+    if(r.data && gistBase && r.data.updatedAt && r.data.updatedAt!==gistBase){
       // 別端末が先に書いていたら上書き前に確認する
-      if(gistBase && remote.updatedAt && remote.updatedAt!==gistBase){
-        if(!confirm(`Gist 側が別の端末で更新されています。\nGist ${remote.updatedAt}\nこの端末 ${DB.updatedAt}\n上書きしますか。`)) return;
-      }
+      if(!confirm(`Gist 側が別の端末で更新されています。\nGist ${r.data.updatedAt}\nこの端末 ${DB.updatedAt}\n上書きしますか。`)) return;
     }
-    await gh('/gists/'+id,{method:'PATCH',body:JSON.stringify({files:{[GFILE]:{content:JSON.stringify(DB)}}})});
+    const res=await ghFetch('/gists/'+id,{method:'PATCH',
+      body:JSON.stringify({files:{[GFILE]:{content:JSON.stringify(DB)}}})});
+    const et=res.headers.get('ETag'); if(et) gistETag=et;   // 次の取得を304で済ませる
     gistBase=DB.updatedAt;
     setPending(false); showSync();
     if(manual) msg('gist-msg','送信しました。');
   }catch(e){
     setPending(true); showSync();
     msg('gist-msg','送信できませんでした（'+e.message+'）。復帰時に再送します。');
-  }
+  }finally{ pushing=false; }
+}
+// 受信。別端末の更新を取りに行く。未更新なら 304 なので通信量はほぼゼロ
+async function gistCheck(){
+  const {tk,id}=ghConf();
+  if(!tk||!id||!navigator.onLine) return;
+  if(isPending()||pushing) return;                  // 未送信を抱えている間は取り込まない
+  if(document.querySelector('.modal.on')) return;   // 入力中に画面を差し替えない
+  try{
+    const r=await gistRead(true);
+    if(r.notModified||r.missing||!r.data) return;
+    const d=r.data;
+    gistBase=d.updatedAt;
+    if(d.updatedAt && (!DB.updatedAt || d.updatedAt>DB.updatedAt)){
+      DB=d; save(false); updateBadge(); reRender();
+      setSync('別端末の更新を取り込みました');
+      setTimeout(showSync, 4000);
+    }
+  }catch(e){}
 }
 
 let syncT=null;
@@ -1045,9 +1093,21 @@ function queueSync(){
 }
 
 // 圏外復帰・定期再試行。ためた入力はここで送り切る
-window.addEventListener('online',  ()=>{ showSync(); if(isPending()) gistPush(false); });
+window.addEventListener('online',  ()=>{ showSync(); if(isPending()) gistPush(false); else gistCheck(); });
 window.addEventListener('offline', showSync);
-setInterval(()=>{ if(isPending() && navigator.onLine) gistPush(false); }, 60000);
+// 1分ごと。未送信があれば送信、無ければ受信を見に行く。
+// 見に行くのは画面が表示されている時だけ。裏のタブで通信し続けない
+setInterval(()=>{
+  if(!navigator.onLine) return;
+  if(isPending()){ gistPush(false); return; }
+  if(document.visibilityState==='visible') gistCheck();
+}, 60000);
+// 画面に戻った瞬間にも確認する。スマホで入力 → PC に戻る、が一番多いため
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState!=='visible') return;
+  showSync();
+  if(isPending()) gistPush(false); else gistCheck();
+});
 function updateBadge(){
   const n=unscored().length, b=document.getElementById('b-score');
   b.textContent=n; b.style.display=n?'':'none';
@@ -1056,7 +1116,7 @@ function updateBadge(){
 // ---------- 起動 ----------
 load();
 updateBadge();
-go('watch');
+go(localStorage.getItem(LS_TAB) || 'watch');
 showSync();
 
 // オフラインでも開けるようにアプリ本体をキャッシュする（file:// では登録されない）
@@ -1068,16 +1128,16 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   const {tk,id}=ghConf();
   if(!tk||!id || !navigator.onLine) return;
   try{
-    const j=await gh('/gists/'+id);
-    const f=j.files&&j.files[GFILE]; if(!f) return;
-    const txt=f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
-    const d=JSON.parse(txt);
+    // 未送信を抱えている時は取り込まない。圏外中の入力を消さないため。
+    // 先に判定して、送るだけの時に250KBの取得をしないようにする
+    if(isPending()){ await gistPush(false); updateBadge(); return; }
+    const r=await gistRead(false);
+    if(r.missing||!r.data) return;
+    const d=r.data;
     gistBase=d.updatedAt;
-    // 未送信を抱えている時は取り込まない。圏外中の入力を消さないため
-    if(isPending()){ gistPush(false); updateBadge(); return; }
     // 起動時はGistの方が新しい場合のみ取り込む
     if(!DB.updatedAt || (d.updatedAt && d.updatedAt>DB.updatedAt)){
-      DB=d; save(false); go('watch');
+      DB=d; save(false); reRender();
     }
     setPending(false); showSync(); updateBadge();
   }catch(e){ setSync('同期エラー'); }
