@@ -42,14 +42,15 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
   font-size:1rem; line-height:1.65; padding-bottom:calc(4.2rem + env(safe-area-inset-bottom));
 }
+/* ヘッダーは主張させない。中身を1行でも多く見せたいので低く抑える */
 header{
   position:sticky; top:0; z-index:20; background:var(--panel);
-  border-bottom:1px solid var(--line); padding:.65rem .7rem;
-  display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid var(--line); padding:.2rem .6rem;
+  display:flex; align-items:baseline; gap:6px; line-height:1.3;
 }
-header h1{font-size:1.12rem;margin:0;font-weight:700;letter-spacing:.02em}
-header .ver{font-size:.76rem;color:var(--fg2);font-weight:400}
-header .sync{margin-left:auto;font-size:.76rem;color:var(--fg2)}
+header h1{font-size:.88rem;margin:0;font-weight:700;letter-spacing:.02em;color:var(--fg2)}
+header .ver{font-size:.71rem;color:var(--fg2);font-weight:400}
+header .sync{margin-left:auto;font-size:.71rem;color:var(--fg2)}
 main{padding:12px;max-width:820px;margin:0 auto}
 section{display:none}
 section.active{display:block}
@@ -105,6 +106,12 @@ button.btn:disabled{opacity:.45;cursor:default}
 
 .next-ep{font-size:1.5rem;font-weight:700;line-height:1.3;margin:.1rem 0 .35rem}
 .next-ep b{font-size:2.1rem;color:var(--accent);margin:0 .1em}
+.next-ep .tmp{font-size:1.06rem;color:var(--fg2);font-weight:400}
+.next-ep .tmp b{font-size:1.5rem;color:var(--fg)}
+/* 視聴中に入れておく暫定点。完走時の採点はこの値から始まる */
+.tmpwrap{display:flex;align-items:center;gap:4px;font-size:.82rem;color:var(--fg2)}
+.tmpwrap input{width:4.4rem;padding:.25rem .3rem;font-size:1rem;text-align:center}
+.sc.tmp{opacity:.72;border:1px dashed var(--line)}
 
 input[type=text],input[type=number],input[type=password],textarea,select{
   font-family:inherit;font-size:1rem;padding:.47rem .6rem;border-radius:8px;
@@ -184,10 +191,10 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
 .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sub{font-size:.76rem;color:var(--fg2);line-height:1.25}
 
-.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.stat .b{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem}
-.stat .b .n{font-size:1.5rem;font-weight:700}
-.stat .b .l{font-size:.76rem;color:var(--fg2)}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stat .b{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.5rem .4rem}
+.stat .b .n{font-size:1.35rem;font-weight:700;line-height:1.25}
+.stat .b .l{font-size:.71rem;color:var(--fg2);line-height:1.3}
 
 .hist{display:flex;align-items:flex-end;gap:2px;height:7rem;margin-top:8px}
 .hist .bar{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
@@ -212,6 +219,9 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
   background:var(--panel);border-top:1px solid var(--line);
 }
 .foot .right{margin-left:auto;display:flex;gap:8px}
+/* よく使う点数への一発移動。押すと値が入るだけで、確定は別に押す */
+.quick{display:flex;gap:4px;flex-wrap:wrap}
+.quick .btn{padding:.3rem .4rem;font-size:.82rem;min-width:2.1rem}
 
 .note{font-size:.82rem;color:var(--fg2);margin:6px 0}
 .warn{background:var(--accent2);border:1px solid var(--accent);border-radius:8px;padding:.53rem;font-size:.82rem;margin:8px 0}
@@ -236,7 +246,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 <body>
 
 <header>
-  <h1>ani-rate <span class="ver">1.04</span></h1>
+  <h1>ani-rate <span class="ver">1.05</span></h1>
   <span class="sync" id="sync-state">未同期</span>
 </header>
 
@@ -271,8 +281,9 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
         <option value="plan">気になる</option>
         <option value="done">完走</option>
         <option value="unscored">未採点</option>
-        <option value="noscore">記録のみ（点数なし）</option>
+        <option value="noscore">保留（点数なし）</option>
         <option value="dropped">中断</option>
+        <option value="skip">見ない</option>
       </select>
     </div>
     <div class="note" id="list-count"></div>
@@ -333,6 +344,14 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     </div>
 
     <div class="card">
+      <h3>放送年の補完</h3>
+      <div class="note">視聴年が入っていない作品を AniList で調べ、放送年を暫定の視聴年として入れます。
+        古い作品を後から見た場合はずれるので、あくまで暫定です。</div>
+      <button class="btn" onclick="enrichYears()">放送年を調べて入れる</button>
+      <div class="note" id="enrich-msg"></div>
+    </div>
+
+    <div class="card">
       <h3>見ないリスト</h3>
       <div class="note">新作の取り込みで「見ない」にしたものです。候補には二度と出ません。</div>
       <div id="skip-list"></div>
@@ -349,7 +368,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 <nav>
   <button id="n-watch" class="on" onclick="go('watch')"><span class="ic">▶</span>視聴中</button>
   <button id="n-score" onclick="go('score')"><span class="ic">★</span>採点<span class="badge" id="b-score" style="display:none">0</span></button>
-  <button id="n-list"  onclick="go('list')"><span class="ic">≡</span>一覧</button>
+  <button id="n-list"  onclick="goList()"><span class="ic">≡</span>一覧</button>
   <button id="n-stat"  onclick="go('stat')"><span class="ic">◧</span>統計</button>
   <button id="n-conf"  onclick="go('conf')"><span class="ic">⚙</span>設定</button>
 </nav>
@@ -407,11 +426,29 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     </div>
     <label class="f">一言メモ</label>
     <textarea id="sc-note"></textarea>
-    <div class="note">点数を付けずに記録だけ残せます。平均・分布・採点待ちには入りません。</div>
+    <div class="note">「保留」は点数を付けずに残します。平均・分布・採点待ちには入りません。</div>
     <div class="foot">
       <button class="btn" onclick="tryClose('m-score')">閉じる</button>
-      <button class="btn" onclick="saveScore(true)">点数なし</button>
-      <span class="right"><button class="btn pri" onclick="saveScore()">この点数で確定</button></span>
+      <button class="btn" onclick="saveScore(true)">保留</button>
+      <span class="quick" id="sc-quick"></span>
+      <span class="right"><button class="btn pri" onclick="saveScore()">確定</button></span>
+    </div>
+  </div>
+</div>
+
+<!-- 見ないリストの1件（一覧から開く） -->
+<div class="modal" id="m-skip">
+  <div class="inner">
+    <h3 id="skip-title"></h3>
+    <div class="meta" id="skip-meta"></div>
+    <div class="note">状態を選ぶと作品として登録します。点数は後から採点できます。</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn pri" onclick="promoteSkip('watching')">見てる</button>
+      <button class="btn" onclick="promoteSkip('plan')">気になる</button>
+    </div>
+    <div class="foot">
+      <button class="btn" onclick="tryClose('m-skip')">閉じる</button>
+      <button class="btn" onclick="dropSkip()">リストから外す</button>
     </div>
   </div>
 </div>
@@ -476,6 +513,16 @@ const TABS=['watch','score','list','stat','conf'];
 const MARKS=['☆','◎','○','△','×','-'];
 const MARK_PT={'☆':10,'◎':8,'○':6,'△':4,'×':2,'-':null};
 const ANCHOR_KEYS=[100,90,80,70,60,50];
+// 基準作品の初期値。取り込んだ775件の中から各ラインの実例を入れてある。
+// アンカーが無いと年をまたいだ時に採点がインフレ・デフレするため、空のままにしない
+const DEF_ANCHORS={
+  100:'とらドラ！ ／ 魔法少女まどか☆マギカ',
+  90 :'明日ちゃんのセーラー服 ／ おおかみこどもの雨と雪',
+  80 :'負けヒロインが多すぎる！ ／ よふかしのうた Season2',
+  70 :'葬送のフリーレン ／ この素晴らしい世界に爆焔を！',
+  60 :'カノジョも彼女 ／ 結城友奈は勇者である -大満開の章-',
+  50 :'転生したらスライムだった件 ／ はたらく細胞'
+};
 const MEDIA={movie:'劇場',ova:'OVA',sp:'特番',tv:''};
 const COUR=['','1月期','4月期','7月期','10月期'];
 const STATUS_JA={watching:'視聴中',plan:'気になる',done:'完走',dropped:'中断'};
@@ -505,6 +552,8 @@ function load(){
   catch(e){ DB=emptyDB(); }
   if(!DB.anchors) DB.anchors={};
   ANCHOR_KEYS.forEach(k=>{ if(DB.anchors[k]==null) DB.anchors[k]=''; });
+  // 全部空なら初期値を入れる。1つでも自分で書いていれば触らない
+  if(ANCHOR_KEYS.every(k=>!DB.anchors[k])) ANCHOR_KEYS.forEach(k=>{ DB.anchors[k]=DEF_ANCHORS[k]; });
   if(!Array.isArray(DB.works)) DB.works=[];
   if(!Array.isArray(DB.skips)) DB.skips=[];   // 「見ない」にしたタイトルの記録
 }
@@ -592,18 +641,31 @@ function renderWatch(){
     const eps=(w.episodes||[]).map((e,i)=>epChip(w,e,i)).join('');
     const sub=[yearLabel(w),airLabel(w)].filter(Boolean).join(' ・ ');
     return `<div class="card">
-      <h3>${esc(w.title)}</h3>
-      <div class="next-ep">次は <b>${next}</b> 話</div>
+      <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
+        <h3 style="flex:1;min-width:0">${esc(w.title)}</h3>
+        <button class="btn sm" onclick="moveWatch('${w.id}',-1)" title="上へ">▲</button>
+        <button class="btn sm" onclick="moveWatch('${w.id}',1)" title="下へ">▼</button>
+      </div>
+      <div class="next-ep">次は <b>${next}</b> 話${
+        w.tmpScore!=null?` <span class="tmp">・ 暫定 <b>${w.tmpScore}</b> 点</span>`:''}</div>
       ${sub?`<div class="meta">${esc(sub)}</div>`:''}
       <div class="marks">
         ${MARKS.map((m,i)=>`<button class="mark m${i+1}" onclick="addEp('${w.id}','${m}')">${m}</button>`).join('')}
       </div>
       ${eps?`<div class="eps">${eps}</div>`:''}
       <div class="row" style="margin-top:10px">
+        <label class="tmpwrap">暫定
+          <input type="number" inputmode="numeric" min="0" max="100" placeholder="—"
+                 value="${w.tmpScore!=null?w.tmpScore:''}"
+                 onchange="setTmp('${w.id}',this.value)">点</label>
+        <span class="spacer"></span>
+      </div>
+      <div class="row" style="margin-top:6px">
         <button class="btn sm" onclick="undoEp('${w.id}')">1話戻す</button>
         <button class="btn sm" onclick="epNote('${w.id}')">直前にメモ</button>
         <button class="btn sm" onclick="openEps('${w.id}')">振り返り</button>
         <span class="spacer"></span>
+        <button class="btn sm" onclick="hold('${w.id}')">保留</button>
         <button class="btn sm" onclick="openEdit('${w.id}')">編集</button>
         <button class="btn sm pri" onclick="finish('${w.id}')">完走</button>
       </div>
@@ -671,7 +733,7 @@ function renderEps(){
   const w=byId(epsId); if(!w) return;
   const eps=w.episodes||[];
   document.getElementById('eps-meta').innerHTML=
-    [ w.score!=null?`<b>${esc(w.score)}点</b>`:(w.noScore?'点数なし（記録のみ）':'未採点'),
+    [ w.score!=null?`<b>${esc(w.score)}点</b>`:(w.noScore?'保留（点数なし）':'未採点'),
       STATUS_JA[w.status]||'', esc(yearLabel(w)), esc(airLabel(w)), '#'+esc(w.seq) ]
     .filter(Boolean).join(' ・ ')
     + (w.note?`<div style="margin-top:4px">${esc(w.note)}</div>`:'');
@@ -703,6 +765,27 @@ function addEpFromEps(){
 function openScoreFromEps(){ const id=epsId; closeModal('m-eps'); openScore(id); }
 function openEditFromEps(){ const id=epsId; closeModal('m-eps'); openEdit(id); }
 
+// 視聴中に入れておく暫定点。統計には一切効かない（score とは別の値）
+function setTmp(id,v){
+  const w=byId(id); if(!w) return;
+  const n=parseInt(v,10);
+  w.tmpScore = isNaN(n) ? null : Math.max(0, Math.min(100, n));
+  save(); renderWatch(); queueSync();
+}
+// 視聴中の並べ替え。並び順は seq で決まるので、隣と seq を入れ替える
+function moveWatch(id,dir){
+  const list=DB.works.filter(w=>w.status==='watching').sort((a,b)=>b.seq-a.seq);
+  const i=list.findIndex(w=>w.id===id), j=i+dir;
+  if(i<0||j<0||j>=list.length) return;
+  const t=list[i].seq; list[i].seq=list[j].seq; list[j].seq=t;
+  save(); renderWatch(); queueSync();
+}
+// 点数を決めずに一覧へ送る。「—」で記録し、採点待ちにも平均にも入れない
+function hold(id){
+  const w=byId(id); if(!w) return;
+  w.status='done'; w.noScore=true; w.score=null;
+  save(); renderWatch(); updateBadge(); queueSync();
+}
 function finish(id){
   const w=byId(id); if(!w) return;
   w.status='done'; save(); queueSync();
@@ -780,24 +863,30 @@ function showNew(n){
     </div>`;
   }).join('');
 }
+// AniList の1件から作品を作る。新作の振り分けと、見ないリストからの復帰の両方で使う
+function workFromNew(m,how){
+  const d=m.sd||{};
+  const p2=v=>String(v).padStart(2,'0');
+  return {
+    id:uid(), seq:nextSeq(), title:m.title,
+    // 見ているものは今年で確定。気になるだけの段階では視聴年を入れない
+    year: how==='watching' ? new Date().getFullYear() : null, yearEst:false,
+    airDate: (d.year&&d.month&&d.day) ? `${d.year}-${p2(d.month)}-${p2(d.day)}` : null,
+    airYear: d.year||null, airCour: d.month?Math.floor((d.month-1)/3)+1:null,
+    media: FMT[m.format]||'tv', epCount: m.episodes||null, status:how,
+    episodes:[], epScores:[], score:null, noScore:false, tmpScore:null, scoredAt:null,
+    reScore:null, reScoredAt:null, note:'', source:'anilist', anilistId:m.id||null
+  };
+}
 function pickNew(id,how){
   const m=newQueue.find(x=>x.id===id); if(!m) return;
   if(how==='skip'){
-    // 記録だけ残す。作品としては登録しないので統計にも一覧にも出ない
-    DB.skips.push({title:m.title, anilistId:m.id, at:nowISO()});
+    // 記録だけ残す。作品としては登録しないので統計にも「すべて」にも出ない。
+    // あとから見てる／気になるに変えられるよう、放送日と話数もそのまま持っておく
+    DB.skips.push({title:m.title, anilistId:m.id, at:nowISO(),
+                   format:m.format, episodes:m.episodes, sd:m.sd});
   }else{
-    const d=m.sd||{};
-    const p2=v=>String(v).padStart(2,'0');
-    DB.works.push({
-      id:uid(), seq:nextSeq(), title:m.title,
-      // 見ているものは今年で確定。気になるだけの段階では視聴年を入れない
-      year: how==='watching' ? new Date().getFullYear() : null, yearEst:false,
-      airDate: (d.year&&d.month&&d.day) ? `${d.year}-${p2(d.month)}-${p2(d.day)}` : null,
-      airYear: d.year||null, airCour: d.month?Math.floor((d.month-1)/3)+1:null,
-      media: FMT[m.format]||'tv', status:how,
-      episodes:[], epScores:[], score:null, noScore:false, scoredAt:null,
-      reScore:null, reScoredAt:null, note:'', source:'anilist', anilistId:m.id
-    });
+    DB.works.push(workFromNew(m,how));
   }
   newQueue=newQueue.filter(x=>x.id!==id);
   save(); queueSync();
@@ -819,12 +908,16 @@ function renderScoreList(){
   el.innerHTML=list.map(w=>`<div class="card">
     <h3>${esc(w.title)}</h3>
     <div class="meta">${(w.episodes||[]).length}話 記録済み</div>
-    <button class="btn pri" onclick="openScore('${w.id}')">採点する</button>
+    <div class="row">
+      <button class="btn pri" onclick="openScore('${w.id}')">採点する</button>
+      <button class="btn" onclick="hold('${w.id}')">保留</button>
+    </div>
   </div>`).join('');
 }
 function openScore(id){
   const w=byId(id); if(!w) return;
-  curId=id; scPick=w.score!=null?w.score:null;
+  // 採点は暫定点から始める。すでに確定した点数があればそちらが優先
+  curId=id; scPick = w.score!=null ? w.score : (w.tmpScore!=null ? w.tmpScore : null);
   document.getElementById('sc-title').textContent=w.title;
   renderScoreEps();
   document.getElementById('sc-anchor').innerHTML = ANCHOR_KEYS
@@ -862,12 +955,16 @@ function bumpScore(d){
   scPick=Math.max(0, Math.min(100, v));
   showScore();
 }
+const QUICK=[30,50,70,80,90,100];
+function quickScore(v){ scPick=v; showScore(); }
 function showScore(){
   // 初期値は「—」。上下ボタンを押すまで点数を付けたことにしない
   const v=scPick;
   document.getElementById('sc-val').textContent = v==null?'—':v;
   document.getElementById('sc-d10').textContent = v==null?'—':Math.floor(v/10);
   document.getElementById('sc-d1').textContent  = v==null?'—':v%10;
+  document.getElementById('sc-quick').innerHTML = QUICK.map(q=>
+    `<button class="btn sm${v===q?' pri':''}" onclick="quickScore(${q})">${q}</button>`).join('');
 }
 function saveScore(noScore){
   const w=byId(curId); if(!w) return;
@@ -879,6 +976,7 @@ function saveScore(noScore){
     w.score=null; w.noScore=true;
   }else{
     w.score=scPick; w.noScore=false; w.scoredAt=nowISO();
+    w.tmpScore=null;                       // 確定したので暫定は用済み
     if(w.status!=='done') w.status='done';
   }
   w.note=document.getElementById('sc-note').value.trim();
@@ -913,8 +1011,8 @@ function saveEdit(){
   const isNew=!w;
   if(!w){
     w={id:uid(), seq:nextSeq(), title:t, year:isNaN(y)?null:y, yearEst:false,
-       airDate:air, airYear:null, airCour:null, media:null, status:st,
-       episodes:[], epScores:[], score:null, noScore:false, scoredAt:null,
+       airDate:air, airYear:null, airCour:null, media:null, epCount:null, status:st,
+       episodes:[], epScores:[], score:null, noScore:false, tmpScore:null, scoredAt:null,
        reScore:null, reScoredAt:null, note:nt, source:'app'};
     // 年が空のまま放送日だけ入れた時は、その年を視聴年として当てておく
     if(w.year==null && air) w.year=parseInt(air.slice(0,4),10);
@@ -939,6 +1037,8 @@ function delWork(){
 }
 
 // ---------- 一覧 ----------
+// 一覧に出す点数。確定していなければ視聴中の暫定点を出す（統計には使わない）
+function shownScore(w){ return w.score!=null ? w.score : (w.tmpScore!=null ? w.tmpScore : null); }
 // 50点以上は10点ごと。50点未満は 30〜49 と 〜29 の2色に分ける
 function scCls(v){
   if(v==null) return '';
@@ -947,33 +1047,51 @@ function scCls(v){
   if(v<50) return 's30';
   return 's'+(Math.floor(v/10)*10);
 }
+// 統計から飛んできた時の絞り込み。ナビの「一覧」を押すと解除される
+let listYear=null, listBand=null;      // listYear は {lo,hi,label} の範囲
+function goList(){ listYear=null; listBand=null; go('list'); }
+function goYears(lo,hi,label){ listYear={lo:lo,hi:hi,label:label}; listBand=null; narrowTo(); }
+function goBand(lo,hi){ listBand={lo:lo,hi:hi}; listYear=null; narrowTo(); }
+function narrowTo(){ document.getElementById('filt').value='all'; go('list'); }
+function clearNarrow(){ listYear=null; listBand=null; renderList(); }
+
 function renderList(){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const sort=document.getElementById('sort').value;
   const filt=document.getElementById('filt').value;
+  // 「見ない」は作品ではないので works には入っていない。この時だけ別に描く
+  if(filt==='skip'){ renderSkipList(q); return; }
   let a=DB.works.slice();
+  if(listYear) a=a.filter(w=>w.year!=null && w.year>=listYear.lo && w.year<=listYear.hi);
+  if(listBand) a=a.filter(w=>w.score!=null && w.score>=listBand.lo && w.score<=listBand.hi);
   if(q) a=a.filter(w=>w.title.toLowerCase().includes(q));
   if(filt==='unscored')     a=a.filter(w=>w.score==null && !w.noScore);
   else if(filt==='noscore') a=a.filter(w=>!!w.noScore);
   else if(filt!=='all')     a=a.filter(w=>w.status===filt);
+  // 並べ替えにも暫定点を使う。点数が無いものだけを後ろに送りたいため
   const cmp={
     seq:(x,y)=>y.seq-x.seq, seqAsc:(x,y)=>x.seq-y.seq,
-    score:(x,y)=>(y.score??-1)-(x.score??-1), scoreAsc:(x,y)=>(x.score??999)-(y.score??999)
+    score:(x,y)=>(shownScore(y)??-1)-(shownScore(x)??-1),
+    scoreAsc:(x,y)=>(shownScore(x)??999)-(shownScore(y)??999)
   };
   a.sort(cmp[sort]);
-  document.getElementById('list-count').textContent=`${a.length} 件 / 全 ${DB.works.length} 件`;
+  const tag = listYear ? `<b>${esc(listYear.label)}</b>`
+            : listBand ? `<b>${listBand.lo}〜${listBand.hi}点</b>` : '';
+  document.getElementById('list-count').innerHTML=`${a.length} 件 / 全 ${DB.works.length} 件`
+    + (tag ? ` ・ ${tag}で絞り込み中 <button class="btn sm" onclick="clearNarrow()">解除</button>` : '');
   const el=document.getElementById('all-list');
   if(!a.length){ el.innerHTML='<div class="empty">該当なし</div>'; return; }
   // 行をタップすると振り返り（話ごとのマークとコメント）が開く。件数の上限は設けない
   el.innerHTML=a.map(w=>{
     const notes=(w.episodes||[]).filter(e=>e.note).length;
+    const sv=shownScore(w), tmp=w.score==null && w.tmpScore!=null;
     const sub=[ '#'+w.seq, yearLabel(w),
                 w.status!=='done'?(STATUS_JA[w.status]||''):'',
-                w.noScore?'記録のみ':'',
+                w.noScore?'保留':'', tmp?'暫定':'',
                 (w.episodes||[]).length?`${(w.episodes||[]).length}話記録`:'',
                 notes?`メモ${notes}`:'' ].filter(Boolean).join(' ・ ');
     return `<div class="list-item" onclick="openEps('${w.id}')">
-      <div class="sc ${scCls(w.score)}">${w.score==null?'—':w.score}</div>
+      <div class="sc ${scCls(sv)}${tmp?' tmp':''}">${sv==null?'—':sv}</div>
       <div class="ttl">${esc(w.title)}
         <div class="sub">${esc(sub)}</div>
       </div>
@@ -981,16 +1099,91 @@ function renderList(){
   }).join('');
 }
 
+// 見ないリストの表示。「すべて」には出さず、フィルタで選んだ時だけ出す
+function renderSkipList(q){
+  const all=DB.skips||[];
+  const s=q ? all.filter(x=>normTitle(x.title).includes(normTitle(q))) : all.slice();
+  document.getElementById('list-count').textContent=`${s.length} 件 / 見ない 全 ${all.length} 件`;
+  const el=document.getElementById('all-list');
+  if(!s.length){ el.innerHTML='<div class="empty">見ないリストは空です。</div>'; return; }
+  el.innerHTML=s.slice().reverse().map(x=>{        // 新しく入れたものが上
+    const i=all.indexOf(x), d=x.sd||{};
+    const sub=[ d.year?`${d.year}/${d.month||1}/${d.day||1}`:'', FMT_JA[x.format]||'',
+                x.episodes?x.episodes+'話':'', (x.at||'').slice(0,10) ].filter(Boolean).join(' ・ ');
+    return `<div class="list-item" onclick="openSkip(${i})">
+      <div class="sc">—</div>
+      <div class="ttl">${esc(x.title)}<div class="sub">${esc(sub)}</div></div>
+    </div>`;
+  }).join('');
+}
+let skipIdx=null;
+function openSkip(i){
+  const x=(DB.skips||[])[i]; if(!x) return;
+  skipIdx=i;
+  const d=x.sd||{};
+  document.getElementById('skip-title').textContent=x.title;
+  document.getElementById('skip-meta').textContent=
+    [ d.year?`${d.year}/${d.month||1}/${d.day||1} 開始`:'', FMT_JA[x.format]||'',
+      x.episodes?x.episodes+'話':'', (x.at||'').slice(0,10)+' に見ないへ' ].filter(Boolean).join(' ・ ');
+  openModal('m-skip');
+}
+// 見ない → 見てる／気になる。放送日や話数も一緒に持っているので入れ直しは要らない
+function promoteSkip(how){
+  const x=(DB.skips||[])[skipIdx]; if(!x) return;
+  DB.works.push(workFromNew({id:x.anilistId, title:x.title, format:x.format,
+                             episodes:x.episodes, sd:x.sd}, how));
+  DB.skips.splice(skipIdx,1);
+  save(); closeModal('m-skip'); reRender(); queueSync();
+}
+function dropSkip(){
+  if(!(DB.skips||[])[skipIdx]) return;
+  if(!confirm('見ないリストから外します。新作の候補に戻ります。よろしいですか。')) return;
+  DB.skips.splice(skipIdx,1);
+  save(); closeModal('m-skip'); reRender(); queueSync();
+}
+
 // ---------- 統計 ----------
 function avg(a){ return a.length? a.reduce((s,v)=>s+v,0)/a.length : null; }
 function fx(v){ return v==null?'—':v.toFixed(1); }
+// 年のまとめ方。2010年以降は1年ごと、それより前は件数が少ないのでまとめる
+function yearBucket(y){
+  if(y>=2010) return {key:y,    lo:y,    hi:y,    label:y+'年'};
+  if(y>=2005) return {key:2005, lo:2005, hi:2009, label:'2005〜2009年'};
+  if(y>=2000) return {key:2000, lo:2000, hi:2004, label:'2000〜2004年'};
+  return          {key:1999, lo:0,    hi:1999, label:'〜1999年'};
+}
+// 話数。公称話数があればそれ、無ければ記録した話数、それも無ければ1作=12話とみなす
+function epsOf(w){
+  if(w.epCount) return w.epCount;
+  const rec=Math.max((w.episodes||[]).length, (w.epScores||[]).length);
+  if(rec) return rec;
+  return w.media==='movie' ? 1 : 12;
+}
+// 視聴時間。劇場110分・OVA/特番30分・それ以外24分で概算する
+function minsOf(w){
+  const n=epsOf(w);
+  if(w.media==='movie') return n*110;
+  if(w.media==='ova'||w.media==='sp') return n*30;
+  return n*24;
+}
 function renderStat(){
   const scored=DB.works.filter(w=>typeof w.score==='number');
   const all=scored.map(w=>w.score);
   const bySeq=scored.slice().sort((a,b)=>b.seq-a.seq);
-  const years={}; scored.forEach(w=>{ if(w.year){ (years[w.year]=years[w.year]||[]).push(w.score); } });
+  // 古い年は件数が少なく、放送年からの推定も粗いのでまとめる
+  const years={};
+  scored.forEach(w=>{
+    if(!w.year) return;
+    const b=yearBucket(w.year);
+    (years[b.key]=years[b.key]||{lo:b.lo,hi:b.hi,label:b.label,v:[]}).v.push(w.score);
+  });
   const yk=Object.keys(years).map(Number).sort((a,b)=>b-a);
   const latestY = yk.length?yk[0]:null;
+
+  // 見た（見ている）ものだけ数える。「気になる」はまだ見ていないので外す
+  const watched=DB.works.filter(w=>w.status!=='plan');
+  const totEp=watched.reduce((s,w)=>s+epsOf(w),0);
+  const totMin=watched.reduce((s,w)=>s+minsOf(w),0);
 
   const hist=new Array(11).fill(0);
   all.forEach(v=>{ hist[Math.min(10,Math.floor(v/10))]++; });
@@ -1001,16 +1194,48 @@ function renderStat(){
     <div class="b"><div class="n">${fx(avg(all))}</div><div class="l">自己平均（全期間）</div></div>
     <div class="b"><div class="n">${fx(avg(bySeq.slice(0,20).map(w=>w.score)))}</div><div class="l">直近20件の平均</div></div>
     <div class="b"><div class="n">${fx(avg(bySeq.slice(0,50).map(w=>w.score)))}</div><div class="l">直近50件の平均</div></div>
-  </div>`;
+    <div class="b"><div class="n">${totEp.toLocaleString()}</div><div class="l">視聴話数</div></div>
+    <div class="b"><div class="n">${Math.round(totMin/60).toLocaleString()}</div><div class="l">視聴時間（h）</div></div>
+  </div>
+  <div class="note">視聴話数は「気になる」を除いた ${watched.length} 件から。話数が分からないものは1作12話（劇場は1本110分）として概算しています。</div>`;
 
   const recOnly=DB.works.filter(w=>w.noScore).length;
-  if(recOnly) h+=`<div class="note">※ 点数なし（記録のみ）の ${recOnly} 件は、平均・分布・採点待ちのいずれにも入れていません。</div>`;
+  if(recOnly) h+=`<div class="note">※ 保留（点数なし）の ${recOnly} 件は、平均・分布・採点待ちのいずれにも入れていません。</div>`;
+
+  // 点数帯ごとの件数と、その帯で一番良かった作品。同点なら全部出す（100点が複数ある想定）
+  const BANDS=[
+    {label:'90点以上', lo:90,  hi:100, cls:'s90'},
+    {label:'80〜89',   lo:80,  hi:89,  cls:'s80'},
+    {label:'70〜79',   lo:70,  hi:79,  cls:'s70'},
+    {label:'60〜69',   lo:60,  hi:69,  cls:'s60'},
+    {label:'50〜59',   lo:50,  hi:59,  cls:'s50'},
+    {label:'30〜49',   lo:30,  hi:49,  cls:'s30'},
+    {label:'29点以下', lo:0,   hi:29,  cls:'s0'}
+  ];
+  h+=`<div class="card"><h3>点数帯ごと</h3>`;
+  h+=BANDS.map(b=>{
+    const inB=scored.filter(w=>w.score>=b.lo && w.score<=b.hi);
+    if(!inB.length) return '';
+    const best=Math.max(...inB.map(w=>w.score));
+    const tops=inB.filter(w=>w.score===best);
+    const names=tops.slice(0,3).map(w=>esc(w.title)).join(' ／ ')
+      + (tops.length>3?` ほか${tops.length-3}件`:'');
+    return `<div class="list-item" onclick="goBand(${b.lo},${b.hi})">
+      <div class="sc ${b.cls}">${inB.length}</div>
+      <div class="ttl">${b.label}　${inB.length}作品
+        <div class="sub">最高 ${best}点：${names}</div></div>
+    </div>`;
+  }).join('');
+  h+=`</div>`;
 
   h+=`<div class="card"><h3>年別の平均</h3>`;
   if(latestY!=null){
-    h+=`<div class="note">直近1年（${latestY}年）の平均は <b>${fx(avg(years[latestY]))}</b> 点（${years[latestY].length}件）です。</div>`;
-    h+=yk.map(y=>`<div class="list-item"><div class="sc ${scCls(avg(years[y]))}">${fx(avg(years[y]))}</div>
-      <div class="ttl">${y}年<div class="sub">${years[y].length}件</div></div></div>`).join('');
+    const t=years[latestY];
+    h+=`<div class="note">直近（${t.label}）の平均は <b>${fx(avg(t.v))}</b> 点（${t.v.length}件）です。</div>`;
+    // 行を押すとその年だけに絞った一覧へ移る
+    h+=yk.map(y=>{ const b=years[y]; return `<div class="list-item" onclick="goYears(${b.lo},${b.hi},'${b.label}')">
+      <div class="sc ${scCls(avg(b.v))}">${fx(avg(b.v))}</div>
+      <div class="ttl">${b.label}<div class="sub">${b.v.length}件 ・ 押すと一覧へ</div></div></div>`; }).join('');
   }else{
     h+=`<div class="note">視聴年が入っている作品がありません。</div>`;
   }
@@ -1055,6 +1280,72 @@ function markFs(){
     if(b) b.classList.toggle('on', k===c);
   });
 }
+// 視聴年が無い作品の放送年を AniList で調べて埋める。
+// Media を直接引くと1件でも見つからない時に 404 で全部落ちるため、Page で包んで引く。
+// 20件を1リクエストにまとめられるので、300件でも15リクエスト程度で済む
+// AniList は「てーきゅう 第8期」のようなシーズン表記を検索できない。
+// 1回目で外れたものは、この形で落として引き直す
+function searchTitle(t){
+  return String(t==null?'':t)
+    .replace(/[（(][^）)]*[）)]/g,' ')            // 括弧の中（(第2期) など）
+    .replace(/第?\s*\d+\s*期/g,' ')
+    .replace(/\d+\s*(st|nd|rd|th)?\s*シーズン/gi,' ')
+    .replace(/(ファースト|セカンド|サード)シーズン/g,' ')
+    .replace(/Season\s*\d+/gi,' ')
+    .replace(/\s+/g,' ').trim();
+}
+async function enrichYears(){
+  const msg=t=>{ document.getElementById('enrich-msg').textContent=t; };
+  if(!navigator.onLine){ msg('圏外です。オンラインで実行してください。'); return; }
+  const targets=DB.works.filter(w=>w.year==null);
+  if(!targets.length){ msg('視聴年が入っていない作品はありません。'); return; }
+  if(!confirm(`${targets.length} 件を AniList で調べます。放送年を暫定の視聴年として入れます。よろしいですか。`)) return;
+  let hit=0, hit2=0;
+  // pass 1 はタイトルそのまま、pass 2 は外れたものをシーズン表記を落として引き直す
+  for(let pass=1; pass<=2; pass++){
+    const rest=targets.filter(w=>w.year==null &&
+      (pass===1 || searchTitle(w.title)!==w.title && searchTitle(w.title).length>1));
+    for(let i=0;i<rest.length;i+=20){
+      const part=rest.slice(i,i+20);
+      msg(`調べています… ${pass===1?'':'（再検索）'}残り ${rest.length-i} 件 / 見つかった ${hit+hit2} 件`);
+      try{
+        const decl=part.map((_,k)=>`$s${k}:String`).join(',');
+        const body=part.map((_,k)=>
+          `a${k}:Page(perPage:1){media(search:$s${k},type:ANIME,sort:SEARCH_MATCH){`+
+          `title{native} startDate{year month day} format episodes}}`).join(' ');
+        const vars={}; part.forEach((w,k)=>{ vars['s'+k]= pass===1 ? w.title : searchTitle(w.title); });
+        const r=await fetch(ANILIST_URL,{method:'POST',
+          headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body:JSON.stringify({query:`query(${decl}){${body}}`,variables:vars})});
+        if(!r.ok) throw new Error('AniList '+r.status);
+        const j=await r.json();
+        part.forEach((w,k)=>{
+          const m=(((j.data||{})['a'+k]||{}).media||[])[0];
+          const d=m&&m.startDate;
+          if(!d||!d.year) return;
+          if(pass===1) hit++; else hit2++;
+          const p2=v=>String(v).padStart(2,'0');
+          w.airYear=d.year;
+          if(d.month) w.airCour=Math.floor((d.month-1)/3)+1;
+          if(d.month&&d.day&&!w.airDate) w.airDate=`${d.year}-${p2(d.month)}-${p2(d.day)}`;
+          if(!w.media&&m.format) w.media=FMT[m.format]||'tv';
+          if(w.epCount==null&&m.episodes) w.epCount=m.episodes;
+          w.year=d.year; w.yearEst=true;      // 放送年からの暫定
+        });
+      }catch(e){
+        msg('途中で止まりました（'+e.message+'）。もう一度押すと続きから調べます。');
+        save(); queueSync(); return;
+      }
+      save();                                 // 途中で止めても消えないよう都度保存する
+    }
+  }
+  queueSync();
+  const left=targets.filter(w=>w.year==null).length;
+  msg(`${targets.length} 件を調べ、${hit+hit2} 件に放送年を入れました（不明 ${left} 件）。`
+    + (hit2?`うち ${hit2} 件はシーズン表記を外して再検索したもので、第1期の年になっている場合があります。`:'')
+    + '統計の年別に反映されます。');
+}
+
 function renderSkips(){
   const el=document.getElementById('skip-list'), s=DB.skips||[];
   // 新しい順に出す。取り消しは元の配列の位置を渡す
@@ -1124,6 +1415,8 @@ function doImport(){
         airYear: s.airYear!=null?s.airYear:null,
         airCour: s.airCour!=null?s.airCour:null,
         media: s.media||null,
+        epCount: s.epCount!=null?s.epCount:null,
+        tmpScore: s.tmpScore!=null?s.tmpScore:null,
         status: s.status || (s.score!=null?'done':'watching'),
         episodes: s.episodes||[], epScores: s.epScores||[],
         score: s.score!=null?s.score:null,
@@ -1295,6 +1588,30 @@ function updateBadge(){
   const n=unscored().length, b=document.getElementById('b-score');
   b.textContent=n; b.style.display=n?'':'none';
 }
+
+// ---------- キーボード ----------
+// 各モーダルの「決定」にあたる操作。ここに無いモーダル（新作・見ない）は
+// 選択肢が複数あって1つに決められないので、Enter では何もしない
+const MODAL_OK={
+  'm-edit':  ()=>saveEdit(),
+  'm-score': ()=>saveScore(),
+  'm-ep':    ()=>saveEpNote(),
+  'm-eps':   ()=>openScoreFromEps()
+};
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter' || e.isComposing) return;   // 変換中のEnterは拾わない
+  const t=e.target, tag=(t&&t.tagName||'').toLowerCase();
+  // ボタンやセレクトの上ではブラウザ既定の動作に任せる（二重実行になるため）
+  if(tag==='button'||tag==='select'||tag==='a') return;
+  const inText = tag==='textarea' ||
+    (tag==='input' && ['text','number','password','date','search'].includes(t.type));
+  // 文字を打っている最中は Ctrl+Enter（Macは⌘+Enter）だけを決定として扱う
+  if(inText && !(e.ctrlKey||e.metaKey)) return;
+  const open=document.querySelectorAll('.modal.on');
+  if(!open.length) return;
+  const fn=MODAL_OK[open[open.length-1].id];     // 重なっている時は一番上だけ
+  if(fn){ e.preventDefault(); fn(); }
+});
 
 // ---------- 起動 ----------
 load();
