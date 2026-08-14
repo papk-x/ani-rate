@@ -1,0 +1,15 @@
+{
+  "name": "ani-rate",
+  "short_name": "ani-rate",
+  "description": "アニメ採点の個人記録",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15171b",
+  "theme_color": "#1b1d22",
+  "lang": "ja",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
