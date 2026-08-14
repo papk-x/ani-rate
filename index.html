@@ -236,7 +236,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 <body>
 
 <header>
-  <h1>ani-rate <span class="ver">1.03</span></h1>
+  <h1>ani-rate <span class="ver">1.04</span></h1>
   <span class="sync" id="sync-state">未同期</span>
 </header>
 
@@ -245,6 +245,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
   <section id="s-watch">
     <div class="row" style="margin-bottom:10px">
       <button class="btn pri" onclick="openEdit(null)">＋ 作品を追加</button>
+      <button class="btn" onclick="openNew()">新作更新</button>
     </div>
     <div id="watch-list"></div>
   </section>
@@ -267,6 +268,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
       <select id="filt" onchange="renderList()" style="flex:1">
         <option value="all">すべて</option>
         <option value="watching">視聴中</option>
+        <option value="plan">気になる</option>
         <option value="done">完走</option>
         <option value="unscored">未採点</option>
         <option value="noscore">記録のみ（点数なし）</option>
@@ -331,6 +333,12 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     </div>
 
     <div class="card">
+      <h3>見ないリスト</h3>
+      <div class="note">新作の取り込みで「見ない」にしたものです。候補には二度と出ません。</div>
+      <div id="skip-list"></div>
+    </div>
+
+    <div class="card">
       <h3>データ</h3>
       <div class="note" id="data-info"></div>
       <button class="btn" onclick="wipe()">この端末のデータを消去</button>
@@ -360,6 +368,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <label class="f">状態</label>
     <select id="e-status">
       <option value="watching">視聴中</option>
+      <option value="plan">気になる</option>
       <option value="done">完走</option>
       <option value="dropped">中断</option>
     </select>
@@ -407,6 +416,26 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
   </div>
 </div>
 
+<!-- 新作の取り込み -->
+<div class="modal" id="m-new">
+  <div class="inner">
+    <h3>新作の取り込み</h3>
+    <div class="note" id="new-msg">…</div>
+    <div class="row" style="margin:8px 0">
+      <button class="btn" onclick="showNew(1)">1作ランダム</button>
+      <button class="btn" onclick="showNew(5)">5作</button>
+      <button class="btn" onclick="showNew(0)">全部</button>
+      <span class="spacer"></span>
+      <button class="btn sm" onclick="loadNew(true)">再取得</button>
+    </div>
+    <div id="new-body"></div>
+    <div class="foot">
+      <button class="btn" onclick="tryClose('m-new')">閉じる</button>
+      <span class="right"><button class="btn pri" onclick="tryClose('m-new');go('watch')">視聴中へ</button></span>
+    </div>
+  </div>
+</div>
+
 <!-- 話ごとの振り返り（一覧から開く） -->
 <div class="modal" id="m-eps">
   <div class="inner">
@@ -449,9 +478,18 @@ const MARK_PT={'☆':10,'◎':8,'○':6,'△':4,'×':2,'-':null};
 const ANCHOR_KEYS=[100,90,80,70,60,50];
 const MEDIA={movie:'劇場',ova:'OVA',sp:'特番',tv:''};
 const COUR=['','1月期','4月期','7月期','10月期'];
-const STATUS_JA={watching:'視聴中',done:'完走',dropped:'中断'};
+const STATUS_JA={watching:'視聴中',plan:'気になる',done:'完走',dropped:'中断'};
+
+// 新作の取得元。AniList の公開GraphQL。認証不要で CORS が開いているので
+// GitHub Pages のページから直接叩ける。日本語タイトル・放送開始日・話数が取れる。
+// dアニメストアは CORS ヘッダを返さず中身もJS描画のため、ブラウザからは取得できない
+const ANILIST_URL='https://graphql.anilist.co';
+const NEW_DAYS=90;                       // さかのぼる日数
+const FMT={TV:'tv',TV_SHORT:'tv',ONA:'tv',MOVIE:'movie',OVA:'ova',SPECIAL:'sp'};
+const FMT_JA={TV:'TV',TV_SHORT:'ショート',ONA:'ONA',MOVIE:'劇場',OVA:'OVA',SPECIAL:'特番'};
 
 let DB=null, curId=null, curEp=null, epsId=null, epPick=null, scPick=null, gistBase=null;
+let newAll=[], newQueue=[];
 
 // ---------- 基盤 ----------
 function nowISO(){ return new Date().toISOString(); }
@@ -468,6 +506,7 @@ function load(){
   if(!DB.anchors) DB.anchors={};
   ANCHOR_KEYS.forEach(k=>{ if(DB.anchors[k]==null) DB.anchors[k]=''; });
   if(!Array.isArray(DB.works)) DB.works=[];
+  if(!Array.isArray(DB.skips)) DB.skips=[];   // 「見ない」にしたタイトルの記録
 }
 function save(touch){
   if(touch!==false) DB.updatedAt=nowISO();
@@ -668,6 +707,106 @@ function finish(id){
   const w=byId(id); if(!w) return;
   w.status='done'; save(); queueSync();
   openScore(id);
+}
+
+// ---------- 新作の取り込み ----------
+// 全角/半角・空白・大小の違いで同じ作品を二度出さないための正規化
+function normTitle(t){ return String(t==null?'':t).normalize('NFKC').replace(/[\s　]/g,'').toLowerCase(); }
+function knownTitles(){
+  const s=new Set();
+  DB.works.forEach(w=>s.add(normTitle(w.title)));
+  (DB.skips||[]).forEach(x=>s.add(normTitle(x.title)));
+  return s;
+}
+function openNew(){ openModal('m-new'); loadNew(false); }
+
+async function fetchAniList(days){
+  const now=Date.now();
+  const fi=t=>{ const d=new Date(t); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); };
+  const q=`query($f:FuzzyDateInt,$t:FuzzyDateInt,$p:Int){Page(page:$p,perPage:50){pageInfo{hasNextPage}
+    media(type:ANIME,countryOfOrigin:"JP",isAdult:false,
+      format_in:[TV,TV_SHORT,ONA,MOVIE,OVA,SPECIAL],
+      startDate_greater:$f,startDate_lesser:$t,sort:START_DATE_DESC){
+      id title{native romaji} format episodes startDate{year month day} siteUrl}}}`;
+  const vars={f:fi(now-days*86400000), t:fi(now+14*86400000)};
+  const out=[];
+  for(let p=1;p<=5;p++){                       // 50件×5ページで打ち切る
+    const r=await fetch(ANILIST_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({query:q,variables:Object.assign({p:p},vars)})});
+    if(!r.ok) throw new Error('AniList '+r.status);
+    const j=await r.json();
+    if(j.errors) throw new Error(j.errors[0].message);
+    j.data.Page.media.forEach(m=>{
+      if(m.title.native) out.push({id:m.id,title:m.title.native,format:m.format,
+        episodes:m.episodes,sd:m.startDate,url:m.siteUrl});
+    });
+    if(!j.data.Page.pageInfo.hasNextPage) break;
+  }
+  return out;
+}
+async function loadNew(force){
+  const msgEl=document.getElementById('new-msg');
+  document.getElementById('new-body').innerHTML='';
+  if(!navigator.onLine){ msgEl.textContent='圏外です。オンラインで開いてください。'; return; }
+  msgEl.textContent='取得中…';
+  try{
+    if(force || !newAll.length) newAll=await fetchAniList(NEW_DAYS);
+    const known=knownTitles();
+    newQueue=newAll.filter(m=>!known.has(normTitle(m.title)));
+    msgEl.textContent=`直近${NEW_DAYS}日で ${newAll.length} 件。未判定は ${newQueue.length} 件です。`;
+  }catch(e){ msgEl.textContent='取得できませんでした（'+e.message+'）。'; }
+}
+// n=1 ならランダムに1作、n>0 なら先頭からn作、n=0 なら全部
+function showNew(n){
+  let list=newQueue.slice();
+  if(n===1) list=list.length?[list[Math.floor(Math.random()*list.length)]]:[];
+  else if(n>0) list=list.slice(0,n);
+  const el=document.getElementById('new-body');
+  if(!list.length){ el.innerHTML='<div class="empty">未判定の新作はありません。</div>'; return; }
+  el.innerHTML=list.map(m=>{
+    const d=m.sd||{};
+    const ds=d.year?`${d.year}/${d.month||1}/${d.day||1} 開始`:'';
+    const meta=[ds, FMT_JA[m.format]||m.format, m.episodes?m.episodes+'話':''].filter(Boolean).join(' ・ ');
+    return `<div class="card" id="nw-${m.id}">
+      <h3>${esc(m.title)}</h3>
+      <div class="meta">${esc(meta)}</div>
+      <div class="row">
+        <button class="btn pri" onclick="pickNew(${m.id},'watching')">見てる</button>
+        <button class="btn" onclick="pickNew(${m.id},'plan')">気になる</button>
+        <span class="spacer"></span>
+        <button class="btn" onclick="pickNew(${m.id},'skip')">見ない</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function pickNew(id,how){
+  const m=newQueue.find(x=>x.id===id); if(!m) return;
+  if(how==='skip'){
+    // 記録だけ残す。作品としては登録しないので統計にも一覧にも出ない
+    DB.skips.push({title:m.title, anilistId:m.id, at:nowISO()});
+  }else{
+    const d=m.sd||{};
+    const p2=v=>String(v).padStart(2,'0');
+    DB.works.push({
+      id:uid(), seq:nextSeq(), title:m.title,
+      // 見ているものは今年で確定。気になるだけの段階では視聴年を入れない
+      year: how==='watching' ? new Date().getFullYear() : null, yearEst:false,
+      airDate: (d.year&&d.month&&d.day) ? `${d.year}-${p2(d.month)}-${p2(d.day)}` : null,
+      airYear: d.year||null, airCour: d.month?Math.floor((d.month-1)/3)+1:null,
+      media: FMT[m.format]||'tv', status:how,
+      episodes:[], epScores:[], score:null, noScore:false, scoredAt:null,
+      reScore:null, reScoredAt:null, note:'', source:'anilist', anilistId:m.id
+    });
+  }
+  newQueue=newQueue.filter(x=>x.id!==id);
+  save(); queueSync();
+  const el=document.getElementById('nw-'+id); if(el) el.remove();
+  document.getElementById('new-msg').textContent=`未判定 残り ${newQueue.length} 件。`;
+  // 出していた分を判定し切ったら、次を出す操作を促す（勝手に全部出さない）
+  const body=document.getElementById('new-body');
+  if(!body.children.length)
+    body.innerHTML='<div class="empty">上のボタンで次を出せます。</div>';
 }
 
 // ---------- 採点 ----------
@@ -916,8 +1055,24 @@ function markFs(){
     if(b) b.classList.toggle('on', k===c);
   });
 }
+function renderSkips(){
+  const el=document.getElementById('skip-list'), s=DB.skips||[];
+  // 新しい順に出す。取り消しは元の配列の位置を渡す
+  el.innerHTML = s.length
+    ? s.slice().reverse().map((x,i)=>`<div class="list-item" style="cursor:default">
+        <div class="ttl">${esc(x.title)}<div class="sub">${esc((x.at||'').slice(0,10))}</div></div>
+        <button class="btn sm" onclick="unskip(${s.length-1-i})">取り消し</button>
+      </div>`).join('')
+    : '<div class="note">まだありません。</div>';
+}
+function unskip(i){
+  if(!DB.skips||!DB.skips[i]) return;
+  DB.skips.splice(i,1);
+  save(); renderSkips(); queueSync();
+}
 function renderConf(){
   markFs();
+  renderSkips();
   document.getElementById('anchor-fields').innerHTML=ANCHOR_KEYS.map(k=>
     `<label class="f">${k} 点の基準作品</label><input type="text" id="a-${k}" value="${esc(DB.anchors[k]||'')}">`).join('');
   document.getElementById('gh-token').value=localStorage.getItem(LS_TOKEN)||'';
