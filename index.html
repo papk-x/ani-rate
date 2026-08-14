@@ -899,7 +899,7 @@ function pickNew(id,how){
     DB.works.push(workFromNew(m,how));
   }
   newQueue=newQueue.filter(x=>x.id!==id);
-  save(); queueSync();
+  save(); reRender(); queueSync();      // 裏の視聴中・一覧も合わせる
   const el=document.getElementById('nw-'+id); if(el) el.remove();
   document.getElementById('new-msg').textContent=`未判定 残り ${newQueue.length} 件。`;
   // 出していた分を判定し切ったら、次を出す操作を促す（勝手に全部出さない）
