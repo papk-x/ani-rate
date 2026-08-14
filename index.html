@@ -342,7 +342,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 
     <div class="card">
       <h3>インポート / エクスポート</h3>
-      <div class="note">anime.xlsx から変換した anime_import.json を読み込めます。</div>
+      <div class="note">JSON を読み込みます。既にある作品は、空いている項目だけが埋まります（点数・メモ・話ごとの記録は上書きしません）。</div>
       <input type="file" id="imp-file" accept=".json,application/json">
       <div class="row" style="margin-top:8px">
         <button class="btn" onclick="doImport()">インポート</button>
@@ -1075,6 +1075,8 @@ function renderList(){
   if(listYear) a=a.filter(w=>w.year!=null && w.year>=listYear.lo && w.year<=listYear.hi);
   if(listBand) a=a.filter(w=>w.score!=null && w.score>=listBand.lo && w.score<=listBand.hi);
   if(q) a=a.filter(w=>w.title.toLowerCase().includes(q));
+  // 「気になる」はまだ見ていないので、専用フィルタでだけ出す（「すべて」には混ぜない）
+  if(filt!=='plan') a=a.filter(w=>w.status!=='plan');
   if(filt==='unscored')     a=a.filter(w=>w.score==null && !w.noScore);
   else if(filt==='noscore') a=a.filter(w=>!!w.noScore);
   else if(filt!=='all')     a=a.filter(w=>w.status===filt);
@@ -1087,7 +1089,8 @@ function renderList(){
   a.sort(cmp[sort]);
   const tag = listYear ? `<b>${esc(listYear.label)}</b>`
             : listBand ? `<b>${listBand.lo}〜${listBand.hi}点</b>` : '';
-  document.getElementById('list-count').innerHTML=`${a.length} 件 / 全 ${DB.works.length} 件`
+  const tot=filt==='plan' ? DB.works.length : DB.works.filter(w=>w.status!=='plan').length;
+  document.getElementById('list-count').innerHTML=`${a.length} 件 / 全 ${tot} 件`
     + (tag ? ` ・ ${tag}で絞り込み中 <button class="btn sm" onclick="clearNarrow()">解除</button>` : '');
   const el=document.getElementById('all-list');
   if(!a.length){ el.innerHTML='<div class="empty">該当なし</div>'; return; }
