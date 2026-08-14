@@ -1,6 +1,6 @@
 // ani-rate オフライン用 Service Worker
 // 版を上げたら CACHE の名前も必ず変える（古いキャッシュが残り続けるため）
-const CACHE = 'ani-rate-1.01';
+const CACHE = 'ani-rate-1.02';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

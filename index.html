@@ -24,20 +24,26 @@
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* 文字サイズは html の font-size で一括変更する。以降の指定はすべて rem */
+html{font-size:17px}
+html[data-fs="s"]{font-size:15px}
+html[data-fs="m"]{font-size:17px}
+html[data-fs="l"]{font-size:19.5px}
+html[data-fs="xl"]{font-size:22.5px}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg); color:var(--fg);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
-  font-size:17px; line-height:1.65; padding-bottom:calc(66px + env(safe-area-inset-bottom));
+  font-size:1rem; line-height:1.65; padding-bottom:calc(4.2rem + env(safe-area-inset-bottom));
 }
 header{
   position:sticky; top:0; z-index:20; background:var(--panel);
-  border-bottom:1px solid var(--line); padding:11px 12px;
+  border-bottom:1px solid var(--line); padding:.65rem .7rem;
   display:flex; align-items:center; gap:8px;
 }
-header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.02em}
-header .ver{font-size:13px;color:var(--fg2);font-weight:400}
-header .sync{margin-left:auto;font-size:13px;color:var(--fg2)}
+header h1{font-size:1.12rem;margin:0;font-weight:700;letter-spacing:.02em}
+header .ver{font-size:.76rem;color:var(--fg2);font-weight:400}
+header .sync{margin-left:auto;font-size:.76rem;color:var(--fg2)}
 main{padding:12px;max-width:820px;margin:0 auto}
 section{display:none}
 section.active{display:block}
@@ -49,51 +55,51 @@ nav{
   padding-bottom:env(safe-area-inset-bottom);
 }
 nav button{
-  background:none;border:none;color:var(--fg2);font-size:13px;
-  padding:9px 2px 11px; cursor:pointer; font-family:inherit;
+  background:none;border:none;color:var(--fg2);font-size:.76rem;
+  padding:.5rem 2px .6rem; cursor:pointer; font-family:inherit;
 }
-nav button .ic{display:block;font-size:21px;line-height:1.2}
+nav button .ic{display:block;font-size:1.24rem;line-height:1.2}
 nav button.on{color:var(--accent);font-weight:700}
 nav button .badge{
-  display:inline-block;min-width:19px;padding:0 5px;margin-left:2px;
-  background:var(--bad);color:#fff;border-radius:10px;font-size:12px;line-height:19px;
+  display:inline-block;min-width:1.12rem;padding:0 .3rem;margin-left:2px;
+  background:var(--bad);color:#fff;border-radius:1rem;font-size:.71rem;line-height:1.12rem;
 }
 
 .card{
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
-  padding:14px; margin-bottom:11px;
+  padding:.82rem; margin-bottom:.65rem;
 }
-.card h3{margin:0 0 7px;font-size:18px;line-height:1.45}
-.meta{font-size:14px;color:var(--fg2);margin-bottom:9px}
+.card h3{margin:0 0 .4rem;font-size:1.06rem;line-height:1.45}
+.meta{font-size:.82rem;color:var(--fg2);margin-bottom:.5rem}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .spacer{flex:1}
 
 button.btn{
-  font-family:inherit;font-size:14px;padding:8px 12px;border-radius:8px;
+  font-family:inherit;font-size:.94rem;padding:.47rem .7rem;border-radius:8px;
   border:1px solid var(--line); background:var(--panel2); color:var(--fg); cursor:pointer;
 }
 button.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
-button.btn.sm{font-size:12px;padding:5px 9px}
+button.btn.sm{font-size:.82rem;padding:.3rem .53rem}
 button.btn:disabled{opacity:.45;cursor:default}
 
 .mark{
-  flex:1; font-size:20px; padding:12px 0; border-radius:10px;
+  flex:1; font-size:1.35rem; padding:.7rem 0; border-radius:10px;
   border:1px solid var(--line); background:var(--panel2); color:var(--fg); cursor:pointer;
   font-family:inherit;
 }
 .mark.m1{color:var(--good)} .mark.m2{color:var(--fg2)} .mark.m3{color:var(--bad)}
 
 input[type=text],input[type=number],input[type=password],textarea,select{
-  font-family:inherit;font-size:15px;padding:8px 10px;border-radius:8px;
+  font-family:inherit;font-size:1rem;padding:.47rem .6rem;border-radius:8px;
   border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%;
 }
-textarea{min-height:70px;resize:vertical}
-label.f{display:block;margin:10px 0 4px;font-size:12px;color:var(--fg2)}
+textarea{min-height:4.2rem;resize:vertical}
+label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
 
 .eps{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
 .ep{
-  width:26px;height:26px;line-height:26px;text-align:center;border-radius:5px;
-  font-size:12px;background:var(--panel2);border:1px solid var(--line);
+  width:1.65rem;height:1.65rem;line-height:1.65rem;text-align:center;border-radius:5px;
+  font-size:.76rem;background:var(--panel2);border:1px solid var(--line);
 }
 .ep.m1{background:var(--good);color:#fff;border-color:transparent}
 .ep.m2{background:var(--panel2)}
@@ -101,18 +107,19 @@ label.f{display:block;margin:10px 0 4px;font-size:12px;color:var(--fg2)}
 
 .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
 .grid5 button{
-  font-family:inherit;font-size:14px;padding:10px 0;border-radius:8px;
+  font-family:inherit;font-size:.94rem;padding:.6rem 0;border-radius:8px;
   border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;
 }
 .grid5 button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.scval{text-align:center;font-size:2.1rem;font-weight:700}
 
 .list-item{
-  display:flex;gap:10px;align-items:center;padding:9px 10px;
+  display:flex;gap:10px;align-items:center;padding:.53rem .6rem;
   border-bottom:1px solid var(--line);cursor:pointer;
 }
 .list-item:last-child{border-bottom:none}
 .sc{
-  min-width:44px;text-align:center;font-weight:700;font-size:15px;
+  min-width:2.7rem;text-align:center;font-weight:700;font-size:1rem;
   padding:3px 0;border-radius:6px;background:var(--panel2);
 }
 .sc.s90{background:var(--good);color:#fff}
@@ -120,17 +127,17 @@ label.f{display:block;margin:10px 0 4px;font-size:12px;color:var(--fg2)}
 .sc.s55{background:var(--panel2)}
 .sc.s0{background:var(--bad);color:#fff}
 .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sub{font-size:11px;color:var(--fg2)}
+.sub{font-size:.76rem;color:var(--fg2)}
 
 .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.stat .b{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
-.stat .b .n{font-size:22px;font-weight:700}
-.stat .b .l{font-size:11px;color:var(--fg2)}
+.stat .b{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem}
+.stat .b .n{font-size:1.5rem;font-weight:700}
+.stat .b .l{font-size:.76rem;color:var(--fg2)}
 
-.hist{display:flex;align-items:flex-end;gap:2px;height:110px;margin-top:8px}
+.hist{display:flex;align-items:flex-end;gap:2px;height:7rem;margin-top:8px}
 .hist .bar{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
-.hist .bar span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:9px;color:var(--fg2)}
-.histwrap{padding-bottom:18px}
+.hist .bar span{position:absolute;bottom:-1.1rem;left:0;right:0;text-align:center;font-size:.65rem;color:var(--fg2)}
+.histwrap{padding-bottom:1.2rem}
 
 .modal{
   position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);
@@ -141,16 +148,27 @@ label.f{display:block;margin:10px 0 4px;font-size:12px;color:var(--fg2)}
   background:var(--panel);width:100%;max-width:820px;max-height:88vh;overflow:auto;
   border-radius:14px 14px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));
 }
-.note{font-size:12px;color:var(--fg2);margin:6px 0}
-.warn{background:var(--accent2);border:1px solid var(--accent);border-radius:8px;padding:9px;font-size:12px;margin:8px 0}
+.note{font-size:.82rem;color:var(--fg2);margin:6px 0}
+.warn{background:var(--accent2);border:1px solid var(--accent);border-radius:8px;padding:.53rem;font-size:.82rem;margin:8px 0}
 hr{border:none;border-top:1px solid var(--line);margin:14px 0}
-.empty{text-align:center;color:var(--fg2);padding:30px 10px;font-size:13px}
+.empty{text-align:center;color:var(--fg2);padding:1.8rem .6rem;font-size:.88rem}
+
+.fsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.fsgrid button{
+  font-family:inherit;font-size:1rem;padding:.6rem 0;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;
+}
+.fsgrid button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 </style>
+<script>
+// 描画前にサイズを当てる。後から当てると一瞬小さく表示されてちらつく
+try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') || 'm'; }catch(e){}
+</script>
 </head>
 <body>
 
 <header>
-  <h1>ani-rate <span class="ver">1.01</span></h1>
+  <h1>ani-rate <span class="ver">1.02</span></h1>
   <span class="sync" id="sync-state">未同期</span>
 </header>
 
@@ -195,6 +213,17 @@ hr{border:none;border-top:1px solid var(--line);margin:14px 0}
 
   <!-- 設定 -->
   <section id="s-conf">
+    <div class="card">
+      <h3>文字サイズ</h3>
+      <div class="fsgrid">
+        <button id="fs-s"  onclick="setFs('s')">小</button>
+        <button id="fs-m"  onclick="setFs('m')">中</button>
+        <button id="fs-l"  onclick="setFs('l')">大</button>
+        <button id="fs-xl" onclick="setFs('xl')">特</button>
+      </div>
+      <div class="note">この端末だけの設定です。Gist には送りません。</div>
+    </div>
+
     <div class="card">
       <h3>基準作品（アンカー）</h3>
       <div class="note">各点数の基準になる作品名を書いておくと、採点がブレません。</div>
@@ -281,7 +310,7 @@ hr{border:none;border-top:1px solid var(--line);margin:14px 0}
     <div class="note" id="sc-ref"></div>
     <hr>
     <div class="note" id="sc-anchor"></div>
-    <div style="text-align:center;font-size:34px;font-weight:700" id="sc-val">—</div>
+    <div class="scval" id="sc-val">—</div>
     <div class="grid5" id="sc-grid"></div>
     <label class="f">一言メモ</label>
     <textarea id="sc-note"></textarea>
@@ -308,7 +337,8 @@ hr{border:none;border-top:1px solid var(--line);margin:14px 0}
 <script>
 'use strict';
 
-const LS_DB='anirate_db', LS_TOKEN='anirate_token', LS_GIST='anirate_gist', LS_PEND='anirate_pending';
+const LS_DB='anirate_db', LS_TOKEN='anirate_token', LS_GIST='anirate_gist',
+      LS_PEND='anirate_pending', LS_FS='anirate_fs';
 const MARKS=['◎','○','△'];
 const ANCHOR_KEYS=[100,90,80,70,60,50];
 
@@ -568,7 +598,23 @@ function renderStat(){
 }
 
 // ---------- 設定 ----------
+const FS_KEYS=['s','m','l','xl'];
+function curFs(){ const v=localStorage.getItem(LS_FS); return FS_KEYS.includes(v)?v:'m'; }
+function setFs(v){
+  if(!FS_KEYS.includes(v)) return;
+  document.documentElement.dataset.fs=v;
+  try{ localStorage.setItem(LS_FS,v); }catch(e){}
+  markFs();
+}
+function markFs(){
+  const c=curFs();
+  FS_KEYS.forEach(k=>{
+    const b=document.getElementById('fs-'+k);
+    if(b) b.classList.toggle('on', k===c);
+  });
+}
 function renderConf(){
+  markFs();
   document.getElementById('anchor-fields').innerHTML=ANCHOR_KEYS.map(k=>
     `<label class="f">${k} 点の基準作品</label><input type="text" id="a-${k}" value="${esc(DB.anchors[k]||'')}">`).join('');
   document.getElementById('gh-token').value=localStorage.getItem(LS_TOKEN)||'';
