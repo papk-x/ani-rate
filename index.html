@@ -96,6 +96,10 @@ button.btn{
   border:1px solid var(--line); background:var(--panel2); color:var(--fg); cursor:pointer;
 }
 button.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+/* 色で役割を分ける。青＝進む・開く、緑＝手元に残す、赤＝消える・上書きされる。
+   赤は塗らずに枠と文字だけにして、押させたい主ボタンと見分けが付くようにする */
+button.btn.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
+button.btn.danger{border-color:var(--bad);color:var(--bad);font-weight:700}
 button.btn.sm{font-size:.82rem;padding:.3rem .53rem}
 button.btn:disabled{opacity:.45;cursor:default}
 
@@ -120,7 +124,7 @@ button.btn:disabled{opacity:.45;cursor:default}
 .next-ep .tmp b{font-size:1.5rem;color:var(--fg)}
 /* 視聴中に入れておく暫定点。完走時の採点はこの値から始まる */
 .tmpwrap{display:flex;align-items:center;gap:4px;font-size:.82rem;color:var(--fg2)}
-.tmpwrap input{width:4.4rem;padding:.25rem .3rem;font-size:1rem;text-align:center}
+.tmpwrap .btn{min-width:5.4rem}
 .sc.tmp{opacity:.72;border:1px dashed var(--line)}
 
 input[type=text],input[type=number],input[type=password],textarea,select{
@@ -237,6 +241,8 @@ label.f{display:block;margin:.6rem 0 .24rem;font-size:.76rem;color:var(--fg2)}
   background:var(--panel);border-top:1px solid var(--line);
 }
 .foot .right{margin-left:auto;display:flex;gap:8px}
+/* 状態で出し分ける入れ物。空の時に gap 分の隙間を残さない */
+#sc-hold:empty{display:none}
 /* よく使う点数への一発移動。押すと値が入るだけで、確定は別に押す */
 .quick{display:flex;gap:4px;flex-wrap:wrap}
 .quick .btn{padding:.3rem .4rem;font-size:.82rem;min-width:2.1rem}
@@ -264,7 +270,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
 <body>
 
 <header>
-  <h1>ani-rate <span class="ver">1.05</span></h1>
+  <h1>ani-rate <span class="ver">1.06</span></h1>
   <span class="sync" id="sync-state">未同期</span>
 </header>
 
@@ -328,7 +334,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
       <h3>基準作品（アンカー）</h3>
       <div class="note">各点数の基準になる作品名を書いておくと、採点がブレません。</div>
       <div id="anchor-fields"></div>
-      <button class="btn" onclick="saveAnchors()">保存</button>
+      <button class="btn ok" onclick="saveAnchors()">保存</button>
     </div>
 
     <div class="card">
@@ -340,12 +346,12 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
       <label class="f">Gist ID</label>
       <input type="text" id="gh-gist" placeholder="未作成なら空のまま">
       <div class="row" style="margin-top:10px">
-        <button class="btn" onclick="saveGistConf()">設定を保存</button>
+        <button class="btn ok" onclick="saveGistConf()">設定を保存</button>
         <button class="btn" onclick="gistCreate()">新規Gistを作る</button>
       </div>
       <div class="row" style="margin-top:8px">
         <button class="btn pri" onclick="gistPush(true)">この端末 → Gist</button>
-        <button class="btn" onclick="gistPull()">Gist → この端末</button>
+        <button class="btn danger" onclick="gistPull()">Gist → この端末</button>
       </div>
       <div class="note" id="gist-msg"></div>
     </div>
@@ -355,7 +361,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
       <div class="note">JSON を読み込みます。既にある作品は、空いている項目だけが埋まります（点数・メモ・話ごとの記録は上書きしません）。</div>
       <input type="file" id="imp-file" accept=".json,application/json">
       <div class="row" style="margin-top:8px">
-        <button class="btn" onclick="doImport()">インポート</button>
+        <button class="btn danger" onclick="doImport()">インポート</button>
         <button class="btn" onclick="doExport()">JSONを書き出す</button>
       </div>
       <div class="note" id="imp-msg"></div>
@@ -378,7 +384,7 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <div class="card">
       <h3>データ</h3>
       <div class="note" id="data-info"></div>
-      <button class="btn" onclick="wipe()">この端末のデータを消去</button>
+      <button class="btn danger" onclick="wipe()">この端末のデータを消去</button>
     </div>
   </section>
 </main>
@@ -413,8 +419,8 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <textarea id="e-note"></textarea>
     <div class="foot">
       <button class="btn" onclick="tryClose('m-edit')">閉じる</button>
-      <button class="btn" id="e-del" onclick="delWork()">削除</button>
-      <span class="right"><button class="btn pri" onclick="saveEdit()">保存</button></span>
+      <button class="btn danger" id="e-del" onclick="delWork()">削除</button>
+      <span class="right"><button class="btn ok" onclick="saveEdit()">保存</button></span>
     </div>
   </div>
 </div>
@@ -444,12 +450,12 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     </div>
     <label class="f">一言メモ</label>
     <textarea id="sc-note"></textarea>
-    <div class="note">「保留」は点数を付けずに残します。平均・分布・採点待ちには入りません。</div>
+    <div class="note" id="sc-hint"></div>
     <div class="foot">
       <button class="btn" onclick="tryClose('m-score')">閉じる</button>
-      <button class="btn" onclick="saveScore(true)">保留</button>
+      <span id="sc-hold"></span>
       <span class="quick" id="sc-quick"></span>
-      <span class="right"><button class="btn pri" onclick="saveScore()">確定</button></span>
+      <span class="right" id="sc-actions"></span>
     </div>
   </div>
 </div>
@@ -515,8 +521,8 @@ try{ document.documentElement.dataset.fs = localStorage.getItem('anirate_fs') ||
     <textarea id="ep-note"></textarea>
     <div class="foot">
       <button class="btn" onclick="tryClose('m-ep')">閉じる</button>
-      <button class="btn" onclick="delEp()">この話を削除</button>
-      <span class="right"><button class="btn pri" onclick="saveEpNote()">保存</button></span>
+      <button class="btn danger" onclick="delEp()">この話を削除</button>
+      <span class="right"><button class="btn ok" onclick="saveEpNote()">保存</button></span>
     </div>
   </div>
 </div>
@@ -691,20 +697,19 @@ function renderWatch(){
       </div>
       ${eps?`<div class="eps">${eps}</div>`:''}
       <div class="row" style="margin-top:10px">
-        <label class="tmpwrap">暫定
-          <input type="number" inputmode="numeric" min="0" max="100" placeholder="—"
-                 value="${w.tmpScore!=null?w.tmpScore:''}"
-                 onchange="setTmp('${w.id}',this.value)">点</label>
+        <span class="tmpwrap">暫定
+          <button class="btn sm" onclick="openScore('${w.id}')">${
+            w.tmpScore!=null?esc(w.tmpScore)+' 点':'点を付ける'}</button></span>
         <span class="spacer"></span>
       </div>
       <div class="row" style="margin-top:6px">
         <button class="btn sm" onclick="undoEp('${w.id}')">1話戻す</button>
         <button class="btn sm" onclick="epNote('${w.id}')">直前にメモ</button>
         <button class="btn sm" onclick="openEps('${w.id}')">振り返り</button>
-        <span class="spacer"></span>
-        <button class="btn sm" onclick="hold('${w.id}')">保留</button>
         <button class="btn sm" onclick="openEdit('${w.id}')">編集</button>
-        <button class="btn sm pri" onclick="finish('${w.id}')">完走</button>
+        <span class="spacer"></span>
+        <button class="btn sm" onclick="hold('${w.id}')">視聴終了</button>
+        <button class="btn sm ok" onclick="finish('${w.id}')">完走</button>
       </div>
     </div>`;
   }).join('');
@@ -802,13 +807,6 @@ function addEpFromEps(){
 function openScoreFromEps(){ const id=epsId; closeModal('m-eps'); openScore(id); }
 function openEditFromEps(){ const id=epsId; closeModal('m-eps'); openEdit(id); }
 
-// 視聴中に入れておく暫定点。統計には一切効かない（score とは別の値）
-function setTmp(id,v){
-  const w=byId(id); if(!w) return;
-  const n=parseInt(v,10);
-  w.tmpScore = isNaN(n) ? null : Math.max(0, Math.min(100, n));
-  save(); renderWatch(); queueSync();
-}
 // 視聴中の並べ替え。並び順は seq で決まるので、隣と seq を入れ替える
 function moveWatch(id,dir){
   const list=DB.works.filter(w=>w.status==='watching').sort((a,b)=>b.seq-a.seq);
@@ -817,7 +815,7 @@ function moveWatch(id,dir){
   const t=list[i].seq; list[i].seq=list[j].seq; list[j].seq=t;
   save(); renderWatch(); queueSync();
 }
-// 点数を決めずに一覧へ送る。「—」で記録し、採点待ちにも平均にも入れない
+// 点数を決めずに一覧へ送る（視聴中カードの「視聴終了」／採点タブの「保留」）
 function hold(id){
   const w=byId(id); if(!w) return;
   w.status='done'; w.noScore=true; w.score=null;
@@ -958,12 +956,27 @@ function openScore(id){
   // 採点は暫定点から始める。すでに確定した点数があればそちらが優先
   curId=id; scPick = w.score!=null ? w.score : (w.tmpScore!=null ? w.tmpScore : null);
   document.getElementById('sc-title').textContent=w.title;
+  buildScoreFoot(w);
   renderScoreEps();
   document.getElementById('sc-anchor').innerHTML = ANCHOR_KEYS
     .filter(k=>DB.anchors[k]).map(k=>`${k}＝${esc(DB.anchors[k])}`).join(' ／ ') || '基準作品は設定タブで登録できます。';
   document.getElementById('sc-note').value=w.note||'';
   showScore();
   openModal('m-score');
+}
+// 視聴中から開いた時は「暫定保存」、完走後は「確定」。入力方法はどちらも同じ
+function buildScoreFoot(w){
+  const watching = w.status==='watching';
+  document.getElementById('sc-actions').innerHTML = watching
+    ? '<button class="btn ok" onclick="saveTmpScore()">暫定保存</button>'
+      + '<button class="btn ok" onclick="saveScore()">確定して完走</button>'
+    : '<button class="btn ok" onclick="saveScore()">確定</button>';
+  // 視聴中に点数を付けずに終える道は視聴中カードの「視聴終了」なので、ここには出さない
+  document.getElementById('sc-hold').innerHTML = watching ? ''
+    : '<button class="btn" onclick="saveScore(true)">保留</button>';
+  document.getElementById('sc-hint').textContent = watching
+    ? '「暫定保存」は視聴中のまま点数だけ控えます。平均・分布には入りません。'
+    : '「保留」は点数を付けずに残します。平均・分布・採点待ちには入りません。';
 }
 // 採点しながら各話のコメントを読み返せるようにする。ここが採点の根拠になる
 function renderScoreEps(){
@@ -1005,10 +1018,19 @@ function showScore(){
   document.getElementById('sc-quick').innerHTML = QUICK.map(q=>
     `<button class="btn sm${v===q?' pri':''}" onclick="quickScore(${q})">${q}</button>`).join('');
 }
+// 視聴中のまま点数だけ控える。status を変えないので統計にも採点待ちにも入らない
+function saveTmpScore(){
+  const w=byId(curId); if(!w) return;
+  w.tmpScore = scPick;                     // 「—」のままなら暫定を外す
+  w.note=document.getElementById('sc-note').value.trim();
+  save(); closeModal('m-score'); reRender(); queueSync();
+}
 function saveScore(noScore){
   const w=byId(curId); if(!w) return;
   if(!noScore && scPick==null){
-    alert('点数を選んでください。付けずに残すなら「点数なしで保存」を押してください。'); return;
+    alert(w.status==='watching'
+      ? '点数を選んでください。まだ決まらないなら「閉じる」で戻れます。'
+      : '点数を選んでください。付けずに残すなら「保留」を押してください。'); return;
   }
   if(noScore){
     // 記録だけ残す。平均・分布・採点待ちのどれにも入れない。状態は変えない
@@ -1685,7 +1707,7 @@ function updateBadge(){
 // 選択肢が複数あって1つに決められないので、Enter では何もしない
 const MODAL_OK={
   'm-edit':  ()=>saveEdit(),
-  'm-score': ()=>saveScore(),
+  'm-score': ()=>{ const w=byId(curId); if(w&&w.status==='watching') saveTmpScore(); else saveScore(); },
   'm-ep':    ()=>saveEpNote(),
   'm-eps':   ()=>openScoreFromEps()
 };
